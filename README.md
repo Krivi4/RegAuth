@@ -25,6 +25,7 @@ Maven 3.8+
 
 Файл конфигурации
 src/main/resources/application.properties
+Подставте свои значения
 
 REST API
 Метод | URL | Токен | Описание
