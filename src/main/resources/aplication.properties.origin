@@ -1,0 +1,27 @@
+#Spring Boot name Project
+spring.application.name=
+
+#PostgreSQL
+spring.datasource.driver-class-name=
+spring.datasource.url=
+spring.datasource.username=
+spring.datasource.password=
+
+
+#Hibernate/Jpa
+spring.jpa.show-sql=
+spring.jpa.properties.hibernate.dialect=
+spring.jpa.hibernate.ddl-auto=
+
+#Liquibase
+spring.liquibase.enabled=
+spring.liquibase.change-log=
+
+#JWT-Secret code
+jwt_secret =
+
+#SMS.ru
+smsru.api-id=
+smsru.from=
+smsru.ttl-minutes=
+smsru.attempts=
