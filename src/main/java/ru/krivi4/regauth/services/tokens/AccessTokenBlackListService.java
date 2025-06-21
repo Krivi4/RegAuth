@@ -15,12 +15,13 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class JwtBlackListService {
+public class AccessTokenBlackListService implements AccessTokenBlacklist{
 
   private final RevokedAccessTokenRepository revokedAccessTokenRepository;
 
   /**Блокирует JTI до истечения срока действия токена.*/
   @Transactional
+  @Override
   public void block(UUID jti, Instant expiresInstant) {
     LocalDateTime expiresAt =
       LocalDateTime.ofInstant(expiresInstant, ZoneId.of("Europe/Moscow"));
@@ -29,6 +30,7 @@ public class JwtBlackListService {
 
   /**Проверяет, заблокирован ли JTI.*/
   @Transactional(readOnly = true)
+  @Override
   public  boolean isBlocked(UUID jti) {
     return revokedAccessTokenRepository.existsById(jti);
   }
@@ -36,7 +38,8 @@ public class JwtBlackListService {
   /**Ежедневно очищает просроченные записи.*/
   @Transactional
   @Scheduled(cron = "0 0 0 * * *", zone = "Europe/Moscow")
-  public void cleanExpiredTokens() {
+  @Override
+  public void cleanExpired() {
     long removed =
       revokedAccessTokenRepository.deleteByExpiresAtBefore(
         LocalDateTime.now(ZoneId.of("Europe/Moscow"))

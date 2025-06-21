@@ -8,7 +8,7 @@
     import org.springframework.stereotype.Component;
     import ru.krivi4.regauth.jwt.Phase;
     import ru.krivi4.regauth.services.auth.PersonDetailsService;
-    import ru.krivi4.regauth.services.tokens.JwtBlackListService;
+    import ru.krivi4.regauth.services.tokens.AccessTokenBlackListService;
     import ru.krivi4.regauth.web.exceptions.TokenRevokedException;
 
     import java.util.UUID;
@@ -19,7 +19,7 @@
 public class FullHandler implements JwtPhaseHandler {
 
   private final PersonDetailsService users;
-  private final JwtBlackListService blacklist;
+  private final AccessTokenBlackListService blacklist;
 
   /** Возвращает фазу FULL. */
   @Override public Phase phase() {

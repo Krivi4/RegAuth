@@ -27,7 +27,7 @@ public class SmsRuSender implements OtpSender {
         .queryParam("msg", textMessage)
         .queryParam("from", smsProperties.getFrom())
         .queryParam("json",1)
-//        .queryParam("test" ,1) //TODO Раскомментировать - для тестов(вместо смс выведется в логах)
+        .queryParam("test" ,1) //TODO Раскомментировать - для тестов(вместо смс выведется в логах)
         .build(false)
         .toUriString();
 

@@ -5,7 +5,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import ru.krivi4.regauth.models.RevokedAccessToken;
 import ru.krivi4.regauth.repositories.RevokedAccessTokenRepository;
-import ru.krivi4.regauth.services.tokens.JwtBlackListService;
+import ru.krivi4.regauth.services.tokens.AccessTokenBlackListService;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -20,16 +20,16 @@ import org.mockito.ArgumentCaptor;
  * Проверяем методы block() и
  * cleanExpiredTokens().
  */
-class JwtBlackListServiceTest {
+class AccessTokenBlackListServiceTest {
 
   private RevokedAccessTokenRepository repo;
-  private JwtBlackListService service;
+  private AccessTokenBlackListService service;
 
   /**Инициализирует мок-репозиторий и сам сервис перед каждым тестом.*/
   @BeforeEach
   void init() {
     repo = mock(RevokedAccessTokenRepository.class);
-    service = new JwtBlackListService(repo);
+    service = new AccessTokenBlackListService(repo);
   }
 
   /**
@@ -66,7 +66,7 @@ class JwtBlackListServiceTest {
     when(repo.deleteByExpiresAtBefore(any()))
       .thenReturn(2);
 
-    service.cleanExpiredTokens();
+    service.cleanExpired();
 
     verify(repo, times(1))
       .deleteByExpiresAtBefore(any(LocalDateTime.class));
