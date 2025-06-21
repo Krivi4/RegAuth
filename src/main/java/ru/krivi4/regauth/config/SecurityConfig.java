@@ -33,19 +33,20 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
   protected void configure(HttpSecurity http) throws Exception {
 
     http
-        .csrf().disable()
-        .authorizeRequests()
-        .antMatchers("/auth/login", "/auth/registration",
-        "/auth/registration/verify","/auth/login/verify","/error")
-        .permitAll()
-        .anyRequest().authenticated()
-        .and()
-        .logout()
-        .logoutUrl("/logout")
-        .logoutSuccessHandler(jwtLogoutSuccessHandler)
-        .and()
-        .sessionManagement()
-        .sessionCreationPolicy(SessionCreationPolicy.STATELESS);
+      .csrf().disable()
+      .authorizeRequests()
+      .antMatchers("/auth/login", "/auth/registration",
+      "/auth/registration/verify","/auth/login/verify",
+      "/auth/refresh","/error")
+      .permitAll()
+      .anyRequest().authenticated()
+      .and()
+      .logout()
+      .logoutUrl("/logout")
+      .logoutSuccessHandler(jwtLogoutSuccessHandler)
+      .and()
+      .sessionManagement()
+      .sessionCreationPolicy(SessionCreationPolicy.STATELESS);
 
     http.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
   }
