@@ -39,7 +39,7 @@ public class OtpSendService {
       LocalDateTime.now().plusMinutes(smsProperties.getTtlMinutes())
     );
     otp.setAttempts(0);
-   // System.out.println("DEBUG Otp: " + code); //TODO Раскомментировать для тестов(вывод кода в логах)
+//    System.out.println("DEBUG Otp: " + code); //TODO Раскомментировать для тестов(вывод кода в логах)
     otpRepository.save(otp);
 
     return otp.getIdOtp();

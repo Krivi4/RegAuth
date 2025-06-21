@@ -10,6 +10,7 @@ import ru.krivi4.regauth.repositories.PeopleRepository;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.Locale;
 
 /**
  * Создаёт нового пользователя в бд people из данных, пришедших в Otp-токене регистрации.
@@ -30,7 +31,7 @@ public class RegistrationService {
     String email = decodedJWT.getClaim("email").asString();
     String phoneNumber = decodedJWT.getClaim("phone_number").asString();
 
-    person.setUsername(username);
+    person.setUsername(username.toLowerCase(Locale.ROOT));
     person.setPassword(passwordEncoder.encode(password));
     person.setEmail(email);
     person.setPhoneNumber(phoneNumber);

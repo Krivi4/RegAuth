@@ -31,6 +31,7 @@ import ru.krivi4.regauth.web.exceptions.*;
 
 import javax.validation.Valid;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 
@@ -124,7 +125,7 @@ public class AuthController {
   public OtpResponse LoginNotVerify(@RequestBody AuthenticationDto authenticationDto) { //принимаем логин и пароль и выдаем новый джвт с новым сроком годности
     UsernamePasswordAuthenticationToken authenticationToken =
       new UsernamePasswordAuthenticationToken(
-        authenticationDto.getUsername(),
+        authenticationDto.getUsername().toLowerCase(Locale.ROOT),
         authenticationDto.getPassword()
       );
 
