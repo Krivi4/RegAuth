@@ -29,15 +29,19 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
   private final JwtFilter jwtFilter;
   private final JwtLogoutSuccessHandler jwtLogoutSuccessHandler;
 
+  private final String[] ALLOWED_URLS = new String[]{
+    "/auth/login", "/auth/registration",
+    "/auth/registration/verify","/auth/login/verify",
+    "/auth/refresh","/error"
+  };
+
   /**Настраивает HTTP Security: отключение CSRF, правила доступа, logout и stateless-сессии.*/
   protected void configure(HttpSecurity http) throws Exception {
 
     http
       .csrf().disable()
       .authorizeRequests()
-      .antMatchers("/auth/login", "/auth/registration",
-      "/auth/registration/verify","/auth/login/verify",
-      "/auth/refresh","/error")
+      .antMatchers(ALLOWED_URLS)
       .permitAll()
       .anyRequest().authenticated()
       .and()

@@ -3,9 +3,10 @@
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.RestTemplate;
-import ru.krivi4.regauth.adapters.smsru.SmsRuSender;
+import ru.krivi4.regauth.adapters.smsru.SmsRuClient;
 import ru.krivi4.regauth.config.SmsProperties;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -18,9 +19,9 @@ import static org.springframework.test.web.client.response.MockRestResponseCreat
  * Используем MockRestServiceServer для эмуляции
  * внешнего API SMS.ru без реальных HTTP-запросов.
  */
-class SmsRuSenderTest {
+class SmsRuClientTest {
 
-  private SmsRuSender smsRuSender;
+  private SmsRuClient smsRuClient;
   private MockRestServiceServer mockServer;
 
   private static final String OK_JSON = """
@@ -39,17 +40,17 @@ class SmsRuSenderTest {
     }
     """;
 
-  /** Инициализирует RestTemplate, MockRestServiceServer и SmsRuSender перед каждым тестом. */
+  /** Инициализирует RestTemplate, MockRestServiceServer и SmsRuClient перед каждым тестом. */
   @BeforeEach
   void setUp() {
    RestTemplate restTemplate = new RestTemplate();
    mockServer = MockRestServiceServer.createServer(restTemplate);
 
-   SmsProperties props = new SmsProperties();
-   props.setApiId("dummy");
-   props.setFrom("FROM");
+   smsRuClient = new SmsRuClient(restTemplate);
 
-   smsRuSender = new SmsRuSender(restTemplate, props);
+    ReflectionTestUtils.setField(smsRuClient, "smsBaseUrl", "https://sms.ru/sms/send");
+    ReflectionTestUtils.setField(smsRuClient, "apiId", "dummy");
+    ReflectionTestUtils.setField(smsRuClient, "from", "FROM");
   }
 
   /** При статусе ответа OK исключения не должны возникнуть. */
@@ -60,7 +61,7 @@ class SmsRuSenderTest {
       requestTo(startsWith("https://sms.ru/sms/send"))
     ).andRespond(withSuccess(OK_JSON, MediaType.APPLICATION_JSON));
 
-    smsRuSender.sendRequest("79990000000", "Тест");
+    smsRuClient.sendRequest("79990000000", "Тест");
 
     mockServer.verify();
   }
@@ -74,7 +75,7 @@ class SmsRuSenderTest {
     ).andRespond(withSuccess(FAIL_JSON, MediaType.APPLICATION_JSON));
 
     assertThatThrownBy(() ->
-      smsRuSender.sendRequest("79990000000", "Тест"))
+      smsRuClient.sendRequest("79990000000", "Тест"))
       .isInstanceOf(IllegalStateException.class);
 
     mockServer.verify();

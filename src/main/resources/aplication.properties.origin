@@ -21,6 +21,7 @@ spring.liquibase.change-log=
 jwt_secret =
 
 #SMS.ru
+smsru.base-url=
 smsru.api-id=
 smsru.from=
 smsru.ttl-minutes=

@@ -3,6 +3,8 @@ package ru.krivi4.regauth.web.controllers;
 import com.auth0.jwt.exceptions.InvalidClaimException;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -59,7 +61,7 @@ public class AuthController {
    * Отправка Otp id
    */
   @PostMapping("/registration")
-  public OtpResponse registrationNotVerify(
+  public ResponseEntity<OtpResponse> registrationNotVerify(
     @RequestBody @Valid PersonDto personDto,
     BindingResult bindingResult
   ){
@@ -78,7 +80,7 @@ public class AuthController {
     UUID otpId = otpSendService.send(person.getPhoneNumber());
 
     String otpToken = jwtUtil.generateOtpRegistrationToken(person, otpId);
-    return new OtpResponse(otpId.toString(), otpToken);
+    return ResponseEntity.status(HttpStatus.CREATED).body(new OtpResponse(otpId.toString(), otpToken));
   }
   /**
   * Подтверждение регистрации:
@@ -88,7 +90,7 @@ public class AuthController {
    * Выдача токенов: access и refresh
    */
   @PostMapping("/registration/verify")
-  public TokenResponse registrationVerify(
+  public ResponseEntity<TokenResponse> registrationVerify(
     @RequestBody VerifyOtpDto verifyOtpDto,
     @RequestHeader ("Authorization") String auth
   ){
@@ -112,7 +114,7 @@ public class AuthController {
     String access = jwtUtil.generateAccessToken(person.getUsername());
     String refresh = jwtUtil.generateRefreshToken(person.getUsername());
     refreshTokenService.save(refresh);
-    return new TokenResponse(access,refresh);
+    return ResponseEntity.ok(new TokenResponse(access,refresh));
   }
 
   /**
@@ -122,7 +124,7 @@ public class AuthController {
    * Отправка Otp id
    */
   @PostMapping("/login")
-  public OtpResponse LoginNotVerify(@RequestBody AuthenticationDto authenticationDto) { //принимаем логин и пароль и выдаем новый джвт с новым сроком годности
+  public ResponseEntity<OtpResponse> LoginNotVerify(@RequestBody AuthenticationDto authenticationDto) { //принимаем логин и пароль и выдаем новый джвт с новым сроком годности
     UsernamePasswordAuthenticationToken authenticationToken =
       new UsernamePasswordAuthenticationToken(
         authenticationDto.getUsername().toLowerCase(Locale.ROOT),
@@ -141,7 +143,7 @@ public class AuthController {
       UUID otpId = otpSendService.send(person.getPhoneNumber());
       String otpToken = jwtUtil.generateOtpLoginToken(person.getUsername(), otpId);
 
-      return new OtpResponse(otpId.toString(), otpToken);
+      return ResponseEntity.ok(new OtpResponse(otpId.toString(), otpToken));
 
   }
   /**
@@ -152,7 +154,7 @@ public class AuthController {
    * Выдача токенов: access и refresh
    */
   @PostMapping("/login/verify")
-  public TokenResponse loginVerify(
+  public ResponseEntity<TokenResponse> loginVerify(
     @RequestBody VerifyOtpDto verifyOtpDto,
     @RequestHeader ("Authorization") String auth
   ){
@@ -176,7 +178,7 @@ public class AuthController {
     String refresh = jwtUtil.generateRefreshToken(person.getUsername());
     refreshTokenService.save(refresh);
 
-    return new TokenResponse(access, refresh);
+    return ResponseEntity.ok(new TokenResponse(access, refresh));
 }
   /**
    * Обновление токенов:
@@ -184,7 +186,7 @@ public class AuthController {
    * Выдача новых access и refresh токенов.
    */
   @PostMapping("/refresh")
-  public TokenResponse refresh(@RequestHeader ("Authorization") String auth){
+  public ResponseEntity<TokenResponse> refresh(@RequestHeader ("Authorization") String auth){
     String refreshTokenRequest = auth.substring(7);
     DecodedJWT decodedJWT = jwtUtil.decode(refreshTokenRequest);
     if(!decodedJWT.getClaim("phase").asString().equals("REFRESH")){
@@ -203,6 +205,6 @@ public class AuthController {
     String accessTokenNew = jwtUtil.generateAccessToken(refreshToken.getUsername());
     refreshTokenService.save(refreshTokenNew);
 
-    return new TokenResponse(accessTokenNew, refreshTokenNew);
+    return ResponseEntity.ok(new TokenResponse(accessTokenNew, refreshTokenNew));
   }
 }
