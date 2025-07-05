@@ -30,9 +30,9 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
   private final JwtLogoutSuccessHandler jwtLogoutSuccessHandler;
 
   private final String[] ALLOWED_URLS = new String[]{
-    "/auth/login", "/auth/registration",
-    "/auth/registration/verify","/auth/login/verify",
-    "/auth/refresh","/error"
+    "/api/v1/auth/login", "/api/v1/auth/registration",
+    "/api/v1/auth/registration/verify","/api/v1/auth/login/verify",
+    "/api/v1/auth/refresh","/error"
   };
 
   /**Настраивает HTTP Security: отключение CSRF, правила доступа, logout и stateless-сессии.*/
@@ -46,7 +46,7 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
       .anyRequest().authenticated()
       .and()
       .logout()
-      .logoutUrl("/logout")
+      .logoutUrl("/api/v1/auth/logout")
       .logoutSuccessHandler(jwtLogoutSuccessHandler)
       .and()
       .sessionManagement()

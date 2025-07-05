@@ -9,7 +9,7 @@ import java.time.LocalDateTime;
 /**Обёртка ошибки REST.*/
 @Getter
 @AllArgsConstructor
-public class ErrorResponse {
+public class ErrorResponseView {
 
   @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss")
   private final LocalDateTime timestamp;

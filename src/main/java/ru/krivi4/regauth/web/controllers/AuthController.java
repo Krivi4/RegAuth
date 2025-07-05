@@ -2,6 +2,7 @@ package ru.krivi4.regauth.web.controllers;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
@@ -9,8 +10,8 @@ import ru.krivi4.regauth.dtos.PersonDto;
 import ru.krivi4.regauth.services.auth.AuthService;
 import ru.krivi4.regauth.dtos.AuthenticationDto;
 import ru.krivi4.regauth.dtos.VerifyOtpDto;
-import ru.krivi4.regauth.views.OtpResponse;
-import ru.krivi4.regauth.views.TokenResponse;
+import ru.krivi4.regauth.views.OtpResponseView;
+import ru.krivi4.regauth.views.TokenResponseView;
 
 import javax.validation.Valid;
 
@@ -18,14 +19,16 @@ import javax.validation.Valid;
 /** Контроллер для аутентификации и регистрации пользователей.*/
 @RequiredArgsConstructor
 @RestController
-@RequestMapping("/auth")
+@RequestMapping("/api/v1/auth")
 public class AuthController {
 
   private final AuthService authService;
 
   /** Запускает процесс регистрации (SMS + OTP-токен). */
-  @PostMapping("/registration")
-  public ResponseEntity<OtpResponse> registrationNotVerify(
+  @PostMapping(value = "/registration",
+          produces = MediaType.APPLICATION_JSON_VALUE,
+          consumes = MediaType.APPLICATION_JSON_VALUE)
+  public ResponseEntity<OtpResponseView> registrationNotVerify(
     @RequestBody @Valid PersonDto personDto, BindingResult bindingResult
   ){
 
@@ -35,8 +38,10 @@ public class AuthController {
   }
 
   /** Подтверждает регистрации и выдаёт пару JWT. */
-  @PostMapping("/registration/verify")
-  public ResponseEntity<TokenResponse> registrationVerify(
+  @PostMapping(value = "/registration/verify",
+          produces = MediaType.APPLICATION_JSON_VALUE,
+          consumes = MediaType.APPLICATION_JSON_VALUE)
+  public ResponseEntity<TokenResponseView> registrationVerify(
     @RequestBody VerifyOtpDto verifyOtpDto,
     @RequestHeader ("Authorization") String auth
   ){
@@ -45,16 +50,20 @@ public class AuthController {
   }
 
   /** Проверяет учётные данные и отправляет OTP-код. */
-  @PostMapping("/login")
-  public ResponseEntity<OtpResponse> LoginNotVerify(
+  @PostMapping(value = "/login",
+          produces = MediaType.APPLICATION_JSON_VALUE,
+          consumes = MediaType.APPLICATION_JSON_VALUE)
+  public ResponseEntity<OtpResponseView> LoginNotVerify(
     @RequestBody AuthenticationDto authenticationDto) {
 
       return ResponseEntity.ok(authService.LoginNotVerify(authenticationDto));
   }
 
   /** Подтверждает вход и выдаёт пару JWT. */
-  @PostMapping("/login/verify")
-  public ResponseEntity<TokenResponse> loginVerify(
+  @PostMapping(value = "/login/verify",
+          produces = MediaType.APPLICATION_JSON_VALUE,
+          consumes = MediaType.APPLICATION_JSON_VALUE)
+  public ResponseEntity<TokenResponseView> loginVerify(
     @RequestBody VerifyOtpDto verifyOtpDto,
     @RequestHeader ("Authorization") String auth
   ){
@@ -63,8 +72,10 @@ public class AuthController {
 }
 
   /** Обновляет access/refresh-токены. */
-  @PostMapping("/refresh")
-  public ResponseEntity<TokenResponse> refresh(@RequestHeader ("Authorization") String auth){
+  @PostMapping(value = "/refresh",
+          produces = MediaType.APPLICATION_JSON_VALUE,
+          consumes = MediaType.APPLICATION_JSON_VALUE)
+  public ResponseEntity<TokenResponseView> refresh(@RequestHeader ("Authorization") String auth){
 
     return ResponseEntity.ok(authService.refresh(auth));
   }

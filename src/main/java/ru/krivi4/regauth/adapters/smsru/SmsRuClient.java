@@ -6,8 +6,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 import ru.krivi4.regauth.ports.otp.OtpSender;
-import ru.krivi4.regauth.config.SmsProperties;
-import ru.krivi4.regauth.views.SmsRuResponse;
+import ru.krivi4.regauth.views.SmsRuResponseView;
 
 /**Отправляет SMS-сообщение (код подтверждения: одноразовый код) через API SMS.ru.*/
 @Service
@@ -36,18 +35,18 @@ public class SmsRuClient implements OtpSender {
       .queryParam("msg", textMessage)
       .queryParam("from", from)
       .queryParam("json",1)
-//      .queryParam("test" ,1) //TODO Раскомментировать - для тестов(вместо смс выведется в логах)
+      .queryParam("test" ,1) //TODO Раскомментировать - для тестов(вместо смс выведется в логах)
       .build(false)
       .toUriString();
 
-  SmsRuResponse smsRuResponse =
-    restTemplate.getForObject(url, SmsRuResponse.class);
-  if (smsRuResponse == null
-      || !"OK".equalsIgnoreCase(smsRuResponse.getStatus())) {
-    throw new IllegalStateException("SMS.RU ошибка: " + smsRuResponse);
+  SmsRuResponseView smsRuResponseView =
+    restTemplate.getForObject(url, SmsRuResponseView.class);
+  if (smsRuResponseView == null
+      || !"OK".equalsIgnoreCase(smsRuResponseView.getStatus())) {
+    throw new IllegalStateException("SMS.RU ошибка: " + smsRuResponseView);
   }
 
-  for (SmsRuResponse.SmsInfo info : smsRuResponse.getSms().values()) {
+  for (SmsRuResponseView.SmsInfo info : smsRuResponseView.getSms().values()) {
     if (!"OK".equalsIgnoreCase(info.getStatus())) {
       throw new IllegalStateException(
         "SMS.RU не удалось отправить сообщение: " + info);

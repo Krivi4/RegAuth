@@ -1,6 +1,7 @@
 package ru.krivi4.regauth.web.controllers;
 
 import lombok.NoArgsConstructor;
+import org.springframework.http.MediaType;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
@@ -14,12 +15,16 @@ import ru.krivi4.regauth.security.auth.PersonDetails;
 @RestController
 public class HelloController {
 
-  @GetMapping("/hello")
+  @GetMapping(value = "/hello",
+          produces = MediaType.TEXT_PLAIN_VALUE,
+          consumes = MediaType.APPLICATION_JSON_VALUE)
   public String sayHello() {
     return "Hello!";
   }
   /** Возвращает имя аутентифицированного пользователя*/
-  @GetMapping("/showUserInfo")
+  @GetMapping(value = "/showUserInfo",
+          produces = MediaType.TEXT_PLAIN_VALUE,
+          consumes = MediaType.APPLICATION_JSON_VALUE)
   public String showUserInfo() {
    Authentication authentication =
      SecurityContextHolder.getContext().getAuthentication();

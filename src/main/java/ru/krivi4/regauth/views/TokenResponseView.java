@@ -8,7 +8,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @AllArgsConstructor
-public class TokenResponse {
+public class TokenResponseView {
 
   private String accessToken;
 

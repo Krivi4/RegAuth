@@ -1,4 +1,41 @@
 databaseChangeLog:
   - include:
-      file: 001_init_schema.sql
+      file: security.sql
       relativeToChangelogFile: true
+
+  - include:
+      file: seq_users.sql
+      relativeToChangelogFile: true
+
+  - include:
+      file: users.sql
+      relativeToChangelogFile: true
+
+  - include:
+      file: users_username_idx.sql
+      relativeToChangelogFile: true
+
+  - include:
+      file: revoked_access_tokens.sql
+      relativeToChangelogFile: true
+
+  - include:
+      file: revoked_access_tokens_expires_idx.sql
+      relativeToChangelogFile: true
+
+  - include:
+      file: otp_codes.sql
+      relativeToChangelogFile: true
+
+  - include:
+      file: otp_expires_idx.sql
+      relativeToChangelogFile: true
+
+  - include:
+      file: refresh_tokens.sql
+      relativeToChangelogFile: true
+
+  - include:
+      file: refresh_expires_idx.sql
+      relativeToChangelogFile: true
+

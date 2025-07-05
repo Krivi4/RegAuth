@@ -24,8 +24,8 @@ import ru.krivi4.regauth.services.otp.OtpVerifyService;
 import ru.krivi4.regauth.services.person.PersonFindService;
 import ru.krivi4.regauth.services.tokens.RefreshTokenService;
 import ru.krivi4.regauth.util.PersonValidator;
-import ru.krivi4.regauth.views.OtpResponse;
-import ru.krivi4.regauth.views.TokenResponse;
+import ru.krivi4.regauth.views.OtpResponseView;
+import ru.krivi4.regauth.views.TokenResponseView;
 import ru.krivi4.regauth.web.exceptions.*;
 
 import java.util.HashMap;
@@ -54,7 +54,7 @@ public class AuthService {
    * Отправка Otp-токена
    * Отправка Otp id
    */
-  public OtpResponse registrationNotVerify(PersonDto personDto, BindingResult bindingResult) {
+  public OtpResponseView registrationNotVerify(PersonDto personDto, BindingResult bindingResult) {
 
     Person person = personMapper.toEntity(personDto);
     personValidator.validate(person, bindingResult);
@@ -70,7 +70,7 @@ public class AuthService {
     UUID otpId = otpSendService.send(person.getPhoneNumber());
 
     String otpToken = jwtUtil.generateOtpRegistrationToken(person, otpId);
-    return new OtpResponse(otpId.toString(), otpToken);
+    return new OtpResponseView(otpId.toString(), otpToken);
   }
 
   /**
@@ -80,7 +80,7 @@ public class AuthService {
    * Проверка кода из смс
    * Выдача токенов: access и refresh
    */
-  public TokenResponse registrationVerify(
+  public TokenResponseView registrationVerify(
     VerifyOtpDto verifyOtpDto, String authHeader
   ){
 
@@ -103,7 +103,7 @@ public class AuthService {
     String access = jwtUtil.generateAccessToken(person.getUsername());
     String refresh = jwtUtil.generateRefreshToken(person.getUsername());
     refreshTokenService.save(refresh);
-    return new TokenResponse(access,refresh);
+    return new TokenResponseView(access,refresh);
   }
 
     /**
@@ -112,7 +112,7 @@ public class AuthService {
      * Отправка Otp-токена
      * Отправка Otp id
      */
-  public OtpResponse LoginNotVerify(AuthenticationDto authenticationDto) {
+  public OtpResponseView LoginNotVerify(AuthenticationDto authenticationDto) {
     UsernamePasswordAuthenticationToken authenticationToken =
       new UsernamePasswordAuthenticationToken(
         authenticationDto.getUsername().toLowerCase(Locale.ROOT),
@@ -131,11 +131,11 @@ public class AuthService {
     UUID otpId = otpSendService.send(person.getPhoneNumber());
     String otpToken = jwtUtil.generateOtpLoginToken(person.getUsername(), otpId);
 
-    return new OtpResponse(otpId.toString(), otpToken);
+    return new OtpResponseView(otpId.toString(), otpToken);
 
   }
 
-    public TokenResponse loginVerify(VerifyOtpDto verifyOtpDto, String authHeader){
+    public TokenResponseView loginVerify(VerifyOtpDto verifyOtpDto, String authHeader){
 
       String otpToken = authHeader.substring(7);
       DecodedJWT decodedJWT = jwtUtil.decode(otpToken);
@@ -156,7 +156,7 @@ public class AuthService {
       String refresh = jwtUtil.generateRefreshToken(person.getUsername());
       refreshTokenService.save(refresh);
 
-      return new TokenResponse(access, refresh);
+      return new TokenResponseView(access, refresh);
     }
 
     /**
@@ -164,7 +164,7 @@ public class AuthService {
      * Проверка и отзыв старого refresh
      * Выдача новых access и refresh токенов.
      */
-    public TokenResponse refresh(String authHeader){
+    public TokenResponseView refresh(String authHeader){
       String refreshTokenRequest = authHeader.substring(7);
       DecodedJWT decodedJWT = jwtUtil.decode(refreshTokenRequest);
       if(!decodedJWT.getClaim("phase").asString().equals("REFRESH")){
@@ -183,6 +183,6 @@ public class AuthService {
       String accessTokenNew = jwtUtil.generateAccessToken(refreshToken.getUsername());
       refreshTokenService.save(refreshTokenNew);
 
-      return new TokenResponse(accessTokenNew, refreshTokenNew);
+      return new TokenResponseView(accessTokenNew, refreshTokenNew);
     }
 }

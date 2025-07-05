@@ -16,6 +16,8 @@ spring.jpa.hibernate.ddl-auto=
 #Liquibase
 spring.liquibase.enabled=
 spring.liquibase.change-log=
+spring.liquibase.default-schema=
+spring.liquibase.liquibase-schema=
 
 #JWT-Secret code
 jwt_secret =

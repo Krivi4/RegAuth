@@ -1,6 +1,7 @@
 package ru.krivi4.regauth.util;
 
 import lombok.RequiredArgsConstructor;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
 import org.springframework.validation.Errors;
 import org.springframework.validation.Validator;
@@ -28,7 +29,7 @@ public class PersonValidator implements Validator {
     Person person = (Person) target;
     String username = person.getUsername();
 
-    if(username == null || username.isEmpty()) {
+    if(StringUtils.isEmpty(username)) {
       return;
     }
 

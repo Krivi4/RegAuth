@@ -7,7 +7,7 @@ import java.util.Map;
 
 /**Обёртка ответа от API SMS.ru при отправке SMS.*/
 @Data
-public class SmsRuResponse {
+public class SmsRuResponseView {
 
   /**Общий статус выполнения запроса.*/
   private String status;
