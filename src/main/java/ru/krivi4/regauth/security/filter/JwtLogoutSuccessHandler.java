@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.web.authentication.logout.LogoutSuccessHandler;
 import org.springframework.stereotype.Component;
+import ru.krivi4.regauth.services.message.MessageService;
 import ru.krivi4.regauth.services.tokens.AccessTokenBlackListService;
 import ru.krivi4.regauth.services.tokens.RefreshTokenBlackListService;
 
@@ -25,40 +26,87 @@ public class JwtLogoutSuccessHandler implements LogoutSuccessHandler {
 
   private final AccessTokenBlackListService accessTokenBlackListService;
   private final RefreshTokenBlackListService refreshTokenBlackListService;
+  private final MessageService messageService;
 
-  private static final String REFRESH_HEADER = "X-Refresh-Token";
+  private static final String AUTHORIZATION_HEADER = "Authorization";
+  private static final String REFRESH_HEADER       = "X-Refresh-Token";
+  private static final String BEARER_PREFIX        = "Bearer ";
 
   /**
-   * Блокирует access-токен и отзывает refresh-токен,
-   * после чего возвращает HTTP 200 и JSON { "message":"Logged out" }.
+   * Основной точка входа при logout.
+   * Если в запросе есть корректный Bearer-заголовок,
+   * выполняет процесс блокировки токенов и пишет ответ клиенту.
    */
   @Override
   public void onLogoutSuccess(
-    HttpServletRequest request,
-    HttpServletResponse response,
-    Authentication authentication
+          HttpServletRequest request,
+          HttpServletResponse response,
+          Authentication authentication
   ) throws IOException {
+    if (!isBearerHeaderPresent(request)) return;
 
-    String header = request.getHeader("Authorization");
-    if (header != null && header.startsWith("Bearer ")) {
-      String jwtToken = header.substring(7);
-      DecodedJWT jwt = JWT.decode(jwtToken);
-      UUID accessJti = UUID.fromString(jwt.getId());
-      Instant expiresAt = jwt.getExpiresAt().toInstant();
-      accessTokenBlackListService.block(accessJti, expiresAt);
+    handleLogout(request);
+    writeSuccessResponse(response);
+  }
 
-      String refreshHeader = request.getHeader(REFRESH_HEADER); // ¹
-      if (refreshHeader != null && refreshHeader.startsWith("Bearer ")) {
-        String refreshToken = refreshHeader.substring(7).trim();
-        DecodedJWT rJwt = JWT.decode(refreshToken);
-        UUID refreshJti = UUID.fromString(rJwt.getId());
+  /**
+   * Выполняет всю логику «отзыва» токенов:
+   * извлекает access-токен, блокирует его в черном списке,
+   * затем при наличии refresh-токена — отзывает и его.
+   */
+  private void handleLogout(HttpServletRequest request) {
+    String accessToken = extractToken(request.getHeader(AUTHORIZATION_HEADER));
+    processAccessToken(accessToken);
 
-        refreshTokenBlackListService.revoke(refreshJti);
-      }
-
-      response.setStatus(HttpServletResponse.SC_OK);
-      response.setContentType("application/json;charset=UTF-8");
-      response.getWriter().write("{\"message\":\"Logged out\"}");
+    String refreshHeader = request.getHeader(REFRESH_HEADER);
+    if (isBearerValue(refreshHeader)) {
+      String refreshToken = extractToken(refreshHeader);
+      processRefreshToken(refreshToken);
     }
+  }
+
+  private boolean isBearerHeaderPresent(HttpServletRequest request) {
+    String header = request.getHeader(AUTHORIZATION_HEADER);
+    return isBearerValue(header);
+  }
+
+  private boolean isBearerValue(String headerValue) {
+    return headerValue != null && headerValue.startsWith(BEARER_PREFIX);
+  }
+
+  private String extractToken(String headerValue) {
+    return headerValue.substring(BEARER_PREFIX.length()).trim();
+  }
+
+  /**
+   * Декодирует переданный access-JWT, извлекает его jti и expiresAt,
+   * передаёт их в AccessTokenBlackListService для блокировки.
+   */
+  private void processAccessToken(String jwtToken) {
+    DecodedJWT decoded = JWT.decode(jwtToken);
+    UUID tokenId = UUID.fromString(decoded.getId());
+    Instant expiry = decoded.getExpiresAt().toInstant();
+    accessTokenBlackListService.block(tokenId, expiry);
+  }
+
+  /**
+   * Декодирует переданный refresh-JWT, извлекает его jti
+   * и передаёт его в RefreshTokenBlackListService для отзыва.
+   */
+  private void processRefreshToken(String jwtToken) {
+    DecodedJWT decoded = JWT.decode(jwtToken);
+    UUID tokenId = UUID.fromString(decoded.getId());
+    refreshTokenBlackListService.revoke(tokenId);
+  }
+
+  /**
+   * Формирует HTTP-ответ с кодом 200 и телом
+   * где сообщение берётся из messages.properties.
+   */
+  private void writeSuccessResponse(HttpServletResponse response) throws IOException {
+    String message = messageService.getMessage("logout.success.message");
+    response.setStatus(HttpServletResponse.SC_OK);
+    response.setContentType("application/json;charset=UTF-8");
+    response.getWriter().write("{\"message\":\"" + message + "\"}");
   }
 }

@@ -9,11 +9,13 @@ import java.util.Map;
 @Data
 public class SmsRuResponseView {
 
+  private static final String STATUS_TEXT_KEY = "status_text";
+
   /**Общий статус выполнения запроса.*/
   private String status;
 
   /**Описательный текст статуса ответа.*/
-  @JsonProperty("status_text")
+  @JsonProperty(STATUS_TEXT_KEY)
   private String statusText;
 
   /**
@@ -27,7 +29,7 @@ public class SmsRuResponseView {
   @Data
   public static class SmsInfo {
     private String status;
-    @JsonProperty("status_text")
+    @JsonProperty(STATUS_TEXT_KEY)
     private String statusText;
   }
 }

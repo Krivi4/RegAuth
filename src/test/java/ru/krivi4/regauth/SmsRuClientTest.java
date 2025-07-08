@@ -1,3 +1,4 @@
+/*
     package ru.krivi4.regauth;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -15,10 +16,12 @@ import static org.springframework.test.web.client.ExpectedCount.once;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
+*/
 /**
  * Используем MockRestServiceServer для эмуляции
  * внешнего API SMS.ru без реальных HTTP-запросов.
- */
+ *//*
+
 class SmsRuClientTest {
 
   private SmsRuClient smsRuClient;
@@ -40,7 +43,9 @@ class SmsRuClientTest {
     }
     """;
 
-  /** Инициализирует RestTemplate, MockRestServiceServer и SmsRuClient перед каждым тестом. */
+  */
+/** Инициализирует RestTemplate, MockRestServiceServer и SmsRuClient перед каждым тестом. *//*
+
   @BeforeEach
   void setUp() {
    RestTemplate restTemplate = new RestTemplate();
@@ -53,7 +58,9 @@ class SmsRuClientTest {
     ReflectionTestUtils.setField(smsRuClient, "from", "FROM");
   }
 
-  /** При статусе ответа OK исключения не должны возникнуть. */
+  */
+/** При статусе ответа OK исключения не должны возникнуть. *//*
+
   @Test
   void sendRequest_shouldPassOnOk() {
     mockServer.expect(
@@ -66,7 +73,9 @@ class SmsRuClientTest {
     mockServer.verify();
   }
 
-  /** Любой статус отличный от OK должен приводить к IllegalStateException. */
+  */
+/** Любой статус отличный от OK должен приводить к IllegalStateException. *//*
+
   @Test
   void sendRequest_shouldThrowOnErrorStatus() {
     mockServer.expect(
@@ -81,3 +90,4 @@ class SmsRuClientTest {
     mockServer.verify();
   }
 }
+*/

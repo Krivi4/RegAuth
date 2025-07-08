@@ -22,6 +22,9 @@ public class RefreshTokenBlackListService implements RefreshBlacklistService {
 
   private final RefreshTokenRepository refreshTokenRepository;
 
+  private static final String MOSCOW_ZONE          = "Europe/Moscow";
+  private static final String DAILY_CLEANUP_CRON   = "0 0 0 * * *";
+
   /** Помечает refresh-токен отозванным. */
   @Transactional
   @Override
@@ -42,12 +45,12 @@ public class RefreshTokenBlackListService implements RefreshBlacklistService {
 
   /**Ежедневно удаляет просроченные refresh-токены.*/
   @Transactional
-  @Scheduled(cron = "0 0 0 * * *", zone = "Europe/Moscow")
+  @Scheduled(cron = DAILY_CLEANUP_CRON, zone = MOSCOW_ZONE)
   @Override
   public void cleanExpired() {
     long removed =
       refreshTokenRepository.deleteByExpiresAtBefore(
-        LocalDateTime.now(ZoneId.of("Europe/Moscow"))
+        LocalDateTime.now(ZoneId.of(MOSCOW_ZONE))
       );
     log.info("Очищенные {} аннулированные токены с истекшим сроком действия", removed);
   }

@@ -49,7 +49,7 @@ class JwtUtilTest {
     String token = jwtUtil.generateOtpLoginToken("tester", otpId);
 
     DecodedJWT jwt = jwtUtil.decode(token);
-    assertThat(jwt.getClaim("idOtp").asString()).isEqualTo(otpId.toString());
+    assertThat(jwt.getClaim("idOtp").asString()).isEqualTo(String.valueOf(otpId));
     assertThat(jwt.getClaim("phase").asString()).isEqualTo("OTP_PENDING");
   }
 }

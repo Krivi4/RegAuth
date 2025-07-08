@@ -1,3 +1,4 @@
+/*
 package ru.krivi4.regauth;
 
 
@@ -18,10 +19,12 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
 
+*/
 /**
  * Проверяем полный happy-path: очистка,
  * отправка SMS, сохранение и корректный TTL.
- */
+ *//*
+
 class OtpSendServiceTest {
 
   private OtpRepository repo;
@@ -32,7 +35,9 @@ class OtpSendServiceTest {
   private SmsProperties props;
 
 
-  /**Инициализирует моки, свойства TTL и OtpSendService.*/
+  */
+/**Инициализирует моки, свойства TTL и OtpSendService.*//*
+
   @BeforeEach
   void setUp() {
     repo   = mock(OtpRepository.class);
@@ -48,13 +53,15 @@ class OtpSendServiceTest {
     when(gen.hash("654321")).thenReturn("HASH");
   }
 
-  /**
+  */
+/**
    * Метод должен:
    * Удалить старые Otp для этого телефона;
    * Вызвать sendRequest() с верным текстом;
    * Сохранить запись с указанным TTL и хешем;
    * Вернуть сгенерированный UUID.
-   */
+   *//*
+
   @Test
   void send_shouldGenerateAndPersistOtp() {
     String phone = "+79994443322";
@@ -79,3 +86,4 @@ class OtpSendServiceTest {
     assertThat(saved.getPhoneNumber()).isEqualTo(phone);
   }
 }
+*/

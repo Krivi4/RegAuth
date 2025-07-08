@@ -17,11 +17,13 @@ public class DefaultLastLoginUpdateService implements LastLoginUpdateService {
 
   private final PeopleRepository peopleRepository;
 
+  private static final ZoneId MOSCOW_ZONE   = ZoneId.of("Europe/Moscow");
+
   /**Обновляет поле lastLogin у пользователя и сохраняет сущность.*/
   @Override
   @Transactional
   public void updatedLastLogin(Person person) {
-    person.setLastLogin(LocalDateTime.now(ZoneId.of("Europe/Moscow")));
+    person.setLastLogin(LocalDateTime.now(MOSCOW_ZONE));
     peopleRepository.save(person);
   }
 }

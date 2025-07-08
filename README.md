@@ -51,3 +51,16 @@ RefreshTokenService.purgeExpired | 0 0 * * * * | Почасовое удален
 Автор | Рындин Артём Игоревич (Krivi4)
 Email | air.@krivi4.ru
 Telegram | @Kr1v14
+
+
+????7
+# RegAuth — запуск в Docker
+
+## Быстрый старт
+
+```bash
+git clone https://github.com/Krivi4/RegAuth.git
+cd RegAuth
+
+# Заполнте `.env` по щаблону .env.origin
+docker-compose up --build

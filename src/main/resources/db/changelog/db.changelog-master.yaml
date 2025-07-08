@@ -39,3 +39,28 @@ databaseChangeLog:
       file: refresh_expires_idx.sql
       relativeToChangelogFile: true
 
+  # -------------------- roles и person_role --------------------
+
+  - include:
+      file: seq_roles.sql
+      relativeToChangelogFile: true
+
+  - include:
+      file: roles.sql
+      relativeToChangelogFile: true
+
+  - include:
+      file: roles_seed.sql
+      relativeToChangelogFile: true
+
+  - include:
+      file: person_role.sql
+      relativeToChangelogFile: true
+
+  - include:
+      file: person_role_person_id_idx.sql
+      relativeToChangelogFile: true
+
+  - include:
+      file: person_role_role_id_idx.sql
+      relativeToChangelogFile: true

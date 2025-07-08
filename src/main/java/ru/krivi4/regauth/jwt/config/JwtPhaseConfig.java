@@ -2,7 +2,7 @@ package ru.krivi4.regauth.jwt.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import ru.krivi4.regauth.jwt.Phase;
+import ru.krivi4.regauth.jwt.phase.Phase;
 import ru.krivi4.regauth.jwt.handler.JwtPhaseHandler;
 
 import java.util.List;

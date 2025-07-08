@@ -3,6 +3,7 @@ package ru.krivi4.regauth.models;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import lombok.experimental.Accessors;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
@@ -14,6 +15,7 @@ import java.util.UUID;
 @Entity
 @Table(name = "otp_codes")
 @Getter @Setter
+@Accessors(chain = true)
 @NoArgsConstructor
 public class Otp {
 

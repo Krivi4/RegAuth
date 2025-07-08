@@ -9,6 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 import ru.krivi4.regauth.models.Person;
 import ru.krivi4.regauth.repositories.PeopleRepository;
 import ru.krivi4.regauth.security.auth.PersonDetails;
+import ru.krivi4.regauth.services.message.MessageService;
 
 import java.util.Optional;
 
@@ -20,22 +21,42 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class PersonDetailsService implements UserDetailsService {
 
-  private final PeopleRepository peopleRepository;
+    private final PeopleRepository peopleRepository;
+    private final MessageService messageService;
 
-  @Override
-  @Transactional(readOnly = true)
-  public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-    Optional<Person> person = peopleRepository.findByUsername(username);
-
-    if(person.isEmpty()){
-      throw new UsernameNotFoundException("Пользователь не найден");
+    /**
+     * Загружает UserDetails по username.
+     * Если пользователь не найден в базе — бросает UsernameNotFoundException.
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+        Optional<Person> personOptional = peopleRepository.findByUsername(username);
+        Person person = requirePerson(personOptional, username);
+        return new PersonDetails(person);
     }
-    return new PersonDetails(person.get());
 
-  }
+    /**
+     * Проверяет, существует ли пользователь с данным именем.
+     */
+    @Transactional(readOnly = true)
+    public boolean usernameExists(String username) {
+        return peopleRepository.existsByUsername(username);
+    }
 
-  @Transactional(readOnly = true)
-  public boolean usernameExists(String username) {
-    return peopleRepository.existsByUsername(username);
-  }
+    // *--------------Вспомогательные методы--------------* //
+
+    /**
+     * Проверяет наличие Person в Optional.
+     */
+    private Person requirePerson(Optional<Person> personOptional, String username) {
+        if (personOptional.isEmpty()) {
+            String msg = messageService.getMessage(
+                    "security.context.user.not.found.exception", username
+            );
+            throw new UsernameNotFoundException(msg);
+        }
+        return personOptional.get();
+    }
 }
+

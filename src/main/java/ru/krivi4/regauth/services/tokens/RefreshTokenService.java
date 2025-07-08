@@ -8,6 +8,7 @@ import org.springframework.transaction.annotation.Transactional;
 import ru.krivi4.regauth.jwt.util.JwtUtil;
 import ru.krivi4.regauth.models.RefreshToken;
 import ru.krivi4.regauth.repositories.RefreshTokenRepository;
+import ru.krivi4.regauth.services.message.MessageService;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -21,60 +22,98 @@ public class RefreshTokenService {
 
   private final JwtUtil jwtUtil;
   private final RefreshTokenRepository refreshTokenRepository;
+  private final MessageService messageService;
 
-  /**Сохраняет новый refresh‑токен.*/
+  private static final String MOSCOW_ZONE         = "Europe/Moscow";
+  private static final String USERNAME_CLAIM      = "username";
+  private static final String HOURLY_CLEANUP_CRON = "0 0 * * * *";
+
+  /**
+   * Сохраняет новый refresh‑токен в базе.
+   */
   @Transactional
   public void save(String refreshToken) {
-    RefreshToken refreshTokenO = new RefreshToken();
-    DecodedJWT decodedJWT = jwtUtil.decode(refreshToken);
-    UUID jti = UUID.fromString(decodedJWT.getId());
-    String username = decodedJWT.getClaim("username").asString();
-    LocalDateTime expiresAt =
-      LocalDateTime.ofInstant(
-        decodedJWT.getExpiresAt().toInstant(),
-        ZoneId.of("Europe/Moscow")
-      );
-    refreshTokenO.setJti(jti);
-    refreshTokenO.setUsername(username);
-    refreshTokenO.setExpiresAt(expiresAt);
-    refreshTokenO.setRevoked(false);
-    refreshTokenRepository.save(refreshTokenO);
+    RefreshToken tokenEntity = buildTokenEntity(refreshToken);
+    refreshTokenRepository.save(tokenEntity);
   }
 
-  /**Помечает токен отозванным.*/
+  /**
+   * Помечает refresh‑токен как отозванный.
+   */
   @Transactional
   public void revoked(RefreshToken refreshToken) {
     refreshToken.setRevoked(true);
     refreshTokenRepository.save(refreshToken);
   }
 
-  /**Валидирует refresh‑токен и возвращает сущность.*/
+  /**
+   * Проверяет валидность refresh‑токена и возвращает его сущность.
+   */
   @Transactional(readOnly = true)
   public RefreshToken validate(String rawJwt) {
-    DecodedJWT decodedJWT = jwtUtil.decode(rawJwt);
-    UUID jti = UUID.fromString(decodedJWT.getId());
+    DecodedJWT decodedJwt = jwtUtil.decode(rawJwt);
+    UUID jti = UUID.fromString(decodedJwt.getId());
 
-    Optional<RefreshToken> maybeToken =
-      refreshTokenRepository.findByJtiAndRevokedFalse(jti);
+    RefreshToken token = findActiveTokenOrThrow(jti);
+    rejectIfExpired(token);
 
-    if (maybeToken.isEmpty()) {
-      throw new IllegalArgumentException("Недействительный или отозванный Refresh токен");
-    }
-
-    RefreshToken token = maybeToken.get();
-    LocalDateTime now = LocalDateTime.now(ZoneId.of("Europe/Moscow"));
-    if (token.getExpiresAt().isBefore(now)) {
-      throw new IllegalArgumentException("Недействительный или отозванный Refresh токен");
-    }
     return token;
   }
 
-  /**Почасовая очистка просроченных refresh‑токенов.*/
-  @Scheduled(cron = "0 0 * * * *", zone = "Europe/Moscow")
+  /**
+   * Удаляет все просроченные refresh‑токены. Запускается каждый час.
+   */
+  @Scheduled(cron = HOURLY_CLEANUP_CRON, zone = MOSCOW_ZONE)
   @Transactional
   public void purgeExpired() {
     refreshTokenRepository.deleteByExpiresAtBefore(
-      LocalDateTime.now(ZoneId.of("Europe/Moscow"))
+            LocalDateTime.now(ZoneId.of(MOSCOW_ZONE))
     );
+  }
+
+  /* ---------------Вспомогательные методы--------------- */
+
+  /**
+   * Строит объект RefreshToken из строкового токена.
+   */
+  private RefreshToken buildTokenEntity(String refreshToken) {
+    DecodedJWT decodedJwt = jwtUtil.decode(refreshToken);
+
+    UUID jti = UUID.fromString(decodedJwt.getId());
+    String username = decodedJwt.getClaim(USERNAME_CLAIM).asString();
+    LocalDateTime expiresAt = LocalDateTime.ofInstant(
+            decodedJwt.getExpiresAt().toInstant(),
+            ZoneId.of(MOSCOW_ZONE)
+    );
+
+    RefreshToken token = new RefreshToken();
+    token.setJti(jti);
+    token.setUsername(username);
+    token.setExpiresAt(expiresAt);
+    token.setRevoked(false);
+
+    return token;
+  }
+
+  /**
+   * Находит активный refresh‑токен по jti или выбрасывает исключение.
+   */
+  private RefreshToken findActiveTokenOrThrow(UUID jti) {
+    Optional<RefreshToken> maybeToken = refreshTokenRepository.findByJtiAndRevokedFalse(jti);
+
+    if (maybeToken.isEmpty()) {
+      throw new IllegalArgumentException(messageService.getMessage("refresh.token.invalid.exception"));
+    }
+
+    return maybeToken.get();
+  }
+
+  /**
+   * Проверяет срок действия токена и выбрасывает исключение, если он просрочен.
+   */
+  private void rejectIfExpired(RefreshToken token) {
+    if (token.getExpiresAt().isBefore(LocalDateTime.now(ZoneId.of(MOSCOW_ZONE)))) {
+      throw new IllegalArgumentException(messageService.getMessage("refresh.token.invalid.exception"));
+    }
   }
 }

@@ -17,13 +17,16 @@ import java.time.ZoneId;
 public class OtpCleanService {
 
   private final OtpRepository otpRepository;
+  private static final String DAILY_CLEANUP_CRON = "0 0 0 * * *";
+  private static final String MOSCOW_ZONE        = "Europe/Moscow";
+
 
   /**Запуск по расписанию очищает устаревшие Otp.*/
   @Transactional
-  @Scheduled(cron = "0 0 0 * * *", zone = "Europe/Moscow")
+  @Scheduled(cron = DAILY_CLEANUP_CRON, zone = MOSCOW_ZONE)
   public void cleanExpiredOTP() {
     long removed = otpRepository.
-      deleteByExpiresAtOTPBefore(LocalDateTime.now(ZoneId.of("Europe/Moscow")));
+      deleteByExpiresAtOTPBefore(LocalDateTime.now(ZoneId.of(MOSCOW_ZONE)));
     log.info("Очищенные {} аннулированные Otp токены с истекшим сроком действия", removed);
   }
 }

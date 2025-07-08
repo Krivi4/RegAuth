@@ -19,11 +19,12 @@ import ru.krivi4.regauth.models.Person;
 import ru.krivi4.regauth.models.RefreshToken;
 import ru.krivi4.regauth.security.auth.PersonDetails;
 import ru.krivi4.regauth.services.login.LastLoginUpdateService;
+import ru.krivi4.regauth.services.message.MessageService;
 import ru.krivi4.regauth.services.otp.OtpSendService;
 import ru.krivi4.regauth.services.otp.OtpVerifyService;
 import ru.krivi4.regauth.services.person.PersonFindService;
 import ru.krivi4.regauth.services.tokens.RefreshTokenService;
-import ru.krivi4.regauth.util.PersonValidator;
+import ru.krivi4.regauth.utils.PersonValidator;
 import ru.krivi4.regauth.views.OtpResponseView;
 import ru.krivi4.regauth.views.TokenResponseView;
 import ru.krivi4.regauth.web.exceptions.*;
@@ -37,74 +38,61 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class AuthService {
 
-  private final PersonFindService personFindService;
-  private final LastLoginUpdateService lastLoginUpdateService;
-  private final RegistrationService registrationService;
-  private final PersonValidator personValidator;
-  private final JwtUtil jwtUtil;
-  private final AuthenticationManager authenticationManager;
-  private final OtpSendService otpSendService;
-  private final OtpVerifyService otpVerifyService;
-  private final RefreshTokenService refreshTokenService;
-  private final PersonMapper personMapper;
+    private final PersonFindService personFindService;
+    private final LastLoginUpdateService lastLoginUpdateService;
+    private final RegistrationService registrationService;
+    private final PersonValidator personValidator;
+    private final JwtUtil jwtUtil;
+    private final AuthenticationManager authenticationManager;
+    private final OtpSendService otpSendService;
+    private final OtpVerifyService otpVerifyService;
+    private final RefreshTokenService refreshTokenService;
+    private final PersonMapper personMapper;
+    private final MessageService messageService;
 
-  /**
-   * Начало процесса регистрации: валидация входящих данных
-   * Отправка смс с кодом подтверждения на телефон
-   * Отправка Otp-токена
-   * Отправка Otp id
-   */
-  public OtpResponseView registrationNotVerify(PersonDto personDto, BindingResult bindingResult) {
+    private static final String BEARER_PREFIX = "Bearer ";
+    private static final String PHASE_OTP_PENDING = "OTP_PENDING";
+    private static final String PHASE_REFRESH = "REFRESH";
+    private static final String USERNAME_CLAIM = "username";
+    private static final String PHASE_CLAIM = "phase";
+    private static final String ID_OTP_CLAIM = "idOtp";
 
-    Person person = personMapper.toEntity(personDto);
-    personValidator.validate(person, bindingResult);
-    if(bindingResult.hasErrors()) {
-      if (bindingResult.hasErrors()) {
-        Map<String, String> errors = new HashMap<>();
-        for (FieldError fe : bindingResult.getFieldErrors()) {
-            errors.putIfAbsent(fe.getField(), fe.getDefaultMessage());
-        }
-        throw new ValidationException(errors);
-      }
-    }
-    UUID otpId = otpSendService.send(person.getPhoneNumber());
 
-    String otpToken = jwtUtil.generateOtpRegistrationToken(person, otpId);
-    return new OtpResponseView(otpId.toString(), otpToken);
-  }
+    /**
+     * Начало процесса регистрации: валидация входящих данных
+     * Отправка смс с кодом подтверждения на телефон
+     * Отправка Otp-токена
+     * Отправка Otp id
+     */
+    public OtpResponseView registrationNotVerify(PersonDto personDto,
+                                                 BindingResult bindingResult) {
 
-  /**
-   * Подтверждение регистрации:
-   * Проверка Otp-токена в Headers Authorization
-   * Проверка OTp id
-   * Проверка кода из смс
-   * Выдача токенов: access и refresh
-   */
-  public TokenResponseView registrationVerify(
-    VerifyOtpDto verifyOtpDto, String authHeader
-  ){
+        Person person = validateAndMapPerson(personDto, bindingResult);
 
-    String otpToken = authHeader.substring(7);
-    DecodedJWT decodedJWT = jwtUtil.decode(otpToken);
+        UUID otpId = sendOtpAndReturnId(person.getPhoneNumber());
+        String otpToken = jwtUtil.generateOtpRegistrationToken(person, otpId);
 
-    if(!decodedJWT.getClaim("phase").asString().equals("OTP_PENDING")){
-      throw new TypeTokenInvalidException("Otp");
+        return buildOtpResponse(otpId, otpToken);
     }
 
-    UUID otpIdJWT = UUID.fromString(decodedJWT.getClaim("idOtp").asString());
-    UUID otpIdReq = verifyOtpDto.getIdOtp();
-    String codeReq = verifyOtpDto.getCode();
+    /**
+     * Подтверждение регистрации:
+     * Проверка Otp-токена в Headers Authorization
+     * Проверка OTp id
+     * Проверка кода из смс
+     * Выдача токенов: access и refresh
+     */
+    public TokenResponseView registrationVerify(VerifyOtpDto verifyOtpDto,
+                                                String authorizationHeader) {
 
-    if(!otpIdJWT.equals(otpIdReq) || !otpVerifyService.verify(otpIdJWT,codeReq)){
-      throw new OtpTokenInvalidException();
+        DecodedJWT decodedJwt = decodeAndCheckPhase(authorizationHeader, PHASE_OTP_PENDING);
+
+        validateOtpPairAndCode(decodedJwt, verifyOtpDto);
+
+        Person person = registrationService.register(decodedJwt);
+        return buildAndPersistTokens(person.getUsername());
     }
 
-    Person person = registrationService.register(decodedJWT);
-    String access = jwtUtil.generateAccessToken(person.getUsername());
-    String refresh = jwtUtil.generateRefreshToken(person.getUsername());
-    refreshTokenService.save(refresh);
-    return new TokenResponseView(access,refresh);
-  }
 
     /**
      * Начало входа: проверка логина/пароля
@@ -112,51 +100,36 @@ public class AuthService {
      * Отправка Otp-токена
      * Отправка Otp id
      */
-  public OtpResponseView LoginNotVerify(AuthenticationDto authenticationDto) {
-    UsernamePasswordAuthenticationToken authenticationToken =
-      new UsernamePasswordAuthenticationToken(
-        authenticationDto.getUsername().toLowerCase(Locale.ROOT),
-        authenticationDto.getPassword()
-      );
+    public OtpResponseView loginNotVerify(AuthenticationDto authenticationDto) {
 
-    Authentication authentication;
-    try {
-      authentication =  authenticationManager.authenticate(authenticationToken);
-    } catch (BadCredentialsException e) {
-      throw new LoginBadCredentialsException();
+        Person person = authenticateCredentialsAndGetPerson(authenticationDto);
+
+        UUID otpId = sendOtpAndReturnId(person.getPhoneNumber());
+        String otpToken = jwtUtil.generateOtpLoginToken(person.getUsername(), otpId);
+
+        return buildOtpResponse(otpId, otpToken);
     }
 
-    PersonDetails personDetails = (PersonDetails) authentication.getPrincipal();
-    Person person = personDetails.getPerson();
-    UUID otpId = otpSendService.send(person.getPhoneNumber());
-    String otpToken = jwtUtil.generateOtpLoginToken(person.getUsername(), otpId);
+    /**
+     * Подтверждение входа:
+     * Проверка Otp-токена в Headers Authorization
+     * Проверка Otp id
+     * Проверка кода из смс
+     * Выдача токенов: access и refresh
+     */
+    public TokenResponseView loginVerify(VerifyOtpDto verifyOtpDto,
+                                         String authorizationHeader) {
 
-    return new OtpResponseView(otpId.toString(), otpToken);
+        DecodedJWT decodedJwt = decodeAndCheckPhase(authorizationHeader, PHASE_OTP_PENDING);
 
-  }
+        validateOtpPairAndCode(decodedJwt, verifyOtpDto);
 
-    public TokenResponseView loginVerify(VerifyOtpDto verifyOtpDto, String authHeader){
+        String username = decodedJwt.getClaim(USERNAME_CLAIM).asString();
+        Person person = personFindService.findByUsername(username);
 
-      String otpToken = authHeader.substring(7);
-      DecodedJWT decodedJWT = jwtUtil.decode(otpToken);
-      if(!decodedJWT.getClaim("phase").asString().equals("OTP_PENDING")){
-        throw new TypeTokenInvalidException("Otp");
-      }
-      UUID otpIdJWT = UUID.fromString(decodedJWT.getClaim("idOtp").asString());
-      UUID otpIdReq = verifyOtpDto.getIdOtp();
-      String codeReq = verifyOtpDto.getCode();
-      String username = decodedJWT.getClaim("username").asString();
+        lastLoginUpdateService.updatedLastLogin(person);
 
-      if(!otpIdJWT.equals(otpIdReq) || !otpVerifyService.verify(otpIdJWT,codeReq)){
-        throw new OtpTokenInvalidException();
-      }
-      Person person = personFindService.findByUsername(username);
-      lastLoginUpdateService.updatedLastLogin(person);
-      String access  = jwtUtil.generateAccessToken(person.getUsername());
-      String refresh = jwtUtil.generateRefreshToken(person.getUsername());
-      refreshTokenService.save(refresh);
-
-      return new TokenResponseView(access, refresh);
+        return buildAndPersistTokens(username);
     }
 
     /**
@@ -164,25 +137,132 @@ public class AuthService {
      * Проверка и отзыв старого refresh
      * Выдача новых access и refresh токенов.
      */
-    public TokenResponseView refresh(String authHeader){
-      String refreshTokenRequest = authHeader.substring(7);
-      DecodedJWT decodedJWT = jwtUtil.decode(refreshTokenRequest);
-      if(!decodedJWT.getClaim("phase").asString().equals("REFRESH")){
-        throw new TypeTokenInvalidException("REFRESH");
-      }
+    public TokenResponseView refresh(String authorizationHeader) {
 
-      RefreshToken refreshToken;
-      try {
-        refreshToken = refreshTokenService.validate(refreshTokenRequest);
-      } catch (InvalidClaimException e) {
-        throw new RefreshTokenInvalidException();
-      }
+        decodeAndCheckPhase(authorizationHeader, PHASE_REFRESH);
+        String rawRefresh = extractBearerToken(authorizationHeader);
+        RefreshToken refreshFromDb;
 
-      refreshTokenService.revoked(refreshToken);
-      String refreshTokenNew = jwtUtil.generateRefreshToken(refreshToken.getUsername());
-      String accessTokenNew = jwtUtil.generateAccessToken(refreshToken.getUsername());
-      refreshTokenService.save(refreshTokenNew);
+        try {
+            refreshFromDb = refreshTokenService.validate(rawRefresh);
+        } catch (InvalidClaimException e) {
+            throw new RefreshTokenInvalidException(messageService);
+        }
 
-      return new TokenResponseView(accessTokenNew, refreshTokenNew);
+        refreshTokenService.revoked(refreshFromDb);
+        return buildAndPersistTokens(refreshFromDb.getUsername());
+    }
+
+    /* --------------вспомогательные методы --------------*/
+
+    /**
+     * Валидирует PersonDto и собирает все ошибки в BindingResult.
+     */
+    private Person validateAndMapPerson(PersonDto personDto, BindingResult bindingResult) {
+        Person person = personMapper.toEntity(personDto);
+
+        personValidator.validate(person, bindingResult);
+        collectBindingResultErrors(bindingResult);
+
+        return person;
+    }
+
+    /**
+     * Отправляет SMS-код через OtpSendService и возвращает сгенерированный ID.
+     */
+    private UUID sendOtpAndReturnId(String phoneNumber) {
+        return otpSendService.send(phoneNumber);
+    }
+
+    /**
+     * Собирает OtpResponseView из ID и JWT-токена.
+     */
+    private OtpResponseView buildOtpResponse(UUID otpId, String otpToken) {
+        return new OtpResponseView(String.valueOf(otpId), otpToken);
+    }
+
+    /**
+     * Аутентифицирует логин/пароль и возвращает Person.
+     */
+    private Person authenticateCredentialsAndGetPerson(AuthenticationDto authenticationDto) {
+
+        UsernamePasswordAuthenticationToken token =
+                new UsernamePasswordAuthenticationToken(
+                        authenticationDto.getUsername().toLowerCase(Locale.ROOT),
+                        authenticationDto.getPassword()
+                );
+
+        Authentication authentication;
+        try {
+            authentication = authenticationManager.authenticate(token);
+        } catch (BadCredentialsException e) {
+            throw new LoginBadCredentialsException(messageService);
+        }
+
+        return ((PersonDetails) authentication.getPrincipal()).getPerson();
+    }
+
+    /**
+     * Декодирует JWT-токен, проверяет соответствие ожидаемой фазы и возвращает объект.
+     */
+    private DecodedJWT decodeAndCheckPhase(String authorizationHeader, String expectedPhase) {
+        DecodedJWT decodedJwt = jwtUtil.decode(extractBearerToken(authorizationHeader));
+        enforcePhase(decodedJwt, expectedPhase);
+        return decodedJwt;
+    }
+
+    /**
+     * Извлекает сам JWT-токен, убирая префикс "Bearer ".
+     */
+    private String extractBearerToken(String authorizationHeader) {
+        return authorizationHeader.substring(BEARER_PREFIX.length()).trim();
+    }
+
+    /**
+     * Проверяет, что в decodedJwt установлен claim "phase", равный expectedPhase.
+     */
+    private void enforcePhase(DecodedJWT decodedJwt, String expectedPhase) {
+        if (!expectedPhase.equals(decodedJwt.getClaim(PHASE_CLAIM).asString())) {
+            throw new TypeTokenInvalidException(expectedPhase, messageService);
+        }
+    }
+
+    /**
+     * Проверяет, что переданный и пришедший по JWT ID OTP совпадают,
+     * и что код подтверждения валиден.
+     */
+    private void validateOtpPairAndCode(DecodedJWT decodedJwt, VerifyOtpDto verifyOtpDto) {
+
+        UUID otpIdJwt = UUID.fromString(decodedJwt.getClaim(ID_OTP_CLAIM).asString());
+        UUID otpIdReq = verifyOtpDto.getIdOtp();
+        String codeReq = verifyOtpDto.getCode();
+
+        if (!otpIdJwt.equals(otpIdReq) || !otpVerifyService.verify(otpIdJwt, codeReq)) {
+            throw new OtpTokenInvalidException(messageService);
+        }
+    }
+
+    /**
+     * Создаёт новый набор access+refresh токенов для username,
+     * сохраняет refresh в БД и возвращает TokenResponseView.
+     */
+    private TokenResponseView buildAndPersistTokens(String username) {
+        String accessToken = jwtUtil.generateAccessToken(username);
+        String refreshToken = jwtUtil.generateRefreshToken(username);
+        refreshTokenService.save(refreshToken);
+        return new TokenResponseView(accessToken, refreshToken);
+    }
+
+    /**
+     * Считывает ошибки из BindingResult и при наличии выбрасывает ValidationException.
+     */
+    private void collectBindingResultErrors(BindingResult bindingResult) {
+        if (bindingResult.hasErrors()) {
+            Map<String, String> errors = new HashMap<>();
+            for (FieldError fieldError : bindingResult.getFieldErrors()) {
+                errors.putIfAbsent(fieldError.getField(), fieldError.getDefaultMessage());
+            }
+            throw new ValidationException(errors, messageService);
+        }
     }
 }

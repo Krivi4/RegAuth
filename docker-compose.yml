@@ -1,0 +1,66 @@
+version: "3.8"
+
+services:
+  # ──────────────────────────────────────────────────────────────
+  #  PostgreSQL
+  # ──────────────────────────────────────────────────────────────
+  db:
+    image: postgres:15            # официальный образ
+    restart: always
+    environment:                  # инициализация БД
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"               # доступ с хоста
+
+  # ──────────────────────────────────────────────────────────────
+  #  Spring-Boot-приложение
+  # ──────────────────────────────────────────────────────────────
+  app:
+    build: .                      # собираем по Dockerfile
+    restart: on-failure
+    env_file: .env                # подтягива­ем все переменные
+
+    environment:                  # здесь только то, что нужно переопределить
+      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      SPRING_JPA_HIBERNATE_DDL_AUTO: ${SPRING_JPA_HIBERNATE_DDL_AUTO}
+      SPRING_LIQUIBASE_ENABLED: "${SPRING_LIQUIBASE_ENABLED}"
+      SPRING_SECRET_KEY: ${SPRING_SECRET_KEY}
+
+      # SMS.ru
+      SMSRU_BASE_URL: ${SMSRU_BASE_URL}
+      SMSRU_API_ID: ${SMSRU_API_ID}
+      SMSRU_FROM: ${SMSRU_FROM}
+      SMSRU_TTL_MINUTES: ${SMSRU_TTL_MINUTES}
+      SMSRU_ATTEMPTS: ${SMSRU_ATTEMPTS}
+
+    ports:
+      - "8080:8080"
+    depends_on:
+      - db
+
+  # ──────────────────────────────────────────────────────────────
+  #  pgAdmin — веб-GUI для PostgreSQL
+  # ──────────────────────────────────────────────────────────────
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    restart: always
+    env_file: .env
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD}
+    ports:
+      - "8081:80"                 # http://localhost:8081
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    depends_on:
+      - db
+
+volumes:
+  db_data:       # данные СУБД
+  pgadmin_data:  # настройки pgAdmin

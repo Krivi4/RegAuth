@@ -11,7 +11,9 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class ErrorResponseView {
 
-  @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss")
+  private static final String DATE_PATTERN = "yyyy-MM-dd'T'HH:mm:ss";
+
+  @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = DATE_PATTERN)
   private final LocalDateTime timestamp;
   private final int status;
   private final String error;

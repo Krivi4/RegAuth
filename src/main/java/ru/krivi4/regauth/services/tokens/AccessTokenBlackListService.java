@@ -19,12 +19,15 @@ public class AccessTokenBlackListService implements AccessTokenBlacklist{
 
   private final RevokedAccessTokenRepository revokedAccessTokenRepository;
 
+  private static final String MOSCOW_ZONE          = "Europe/Moscow";
+  private static final String DAILY_CLEANUP_CRON   = "0 0 0 * * *";
+
   /**Блокирует JTI до истечения срока действия токена.*/
   @Transactional
   @Override
   public void block(UUID jti, Instant expiresInstant) {
     LocalDateTime expiresAt =
-      LocalDateTime.ofInstant(expiresInstant, ZoneId.of("Europe/Moscow"));
+      LocalDateTime.ofInstant(expiresInstant, ZoneId.of(MOSCOW_ZONE));
     revokedAccessTokenRepository.save(new RevokedAccessToken(jti, expiresAt));
   }
 
@@ -37,12 +40,12 @@ public class AccessTokenBlackListService implements AccessTokenBlacklist{
 
   /**Ежедневно очищает просроченные записи.*/
   @Transactional
-  @Scheduled(cron = "0 0 0 * * *", zone = "Europe/Moscow")
+  @Scheduled(cron = DAILY_CLEANUP_CRON, zone = MOSCOW_ZONE)
   @Override
   public void cleanExpired() {
     long removed =
       revokedAccessTokenRepository.deleteByExpiresAtBefore(
-        LocalDateTime.now(ZoneId.of("Europe/Moscow"))
+        LocalDateTime.now(ZoneId.of(MOSCOW_ZONE))
       );
     log.info("Очищенные {} аннулированные токены с истекшим сроком действия", removed);
   }
