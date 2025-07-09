@@ -5,8 +5,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
-import ru.krivi4.regauth.security.auth.JwtAuthService;
-import ru.krivi4.regauth.services.message.MessageService;
+import ru.krivi4.regauth.security.auth.DefaultJwtAuthService;
+import ru.krivi4.regauth.services.message.DefaultMessageService;
 import ru.krivi4.regauth.web.exceptions.ApiException;
 import ru.krivi4.regauth.web.exceptions.AuthenticateSkipException;
 
@@ -23,12 +23,12 @@ import java.io.IOException;
 @RequiredArgsConstructor
 public class JwtFilter extends OncePerRequestFilter {
 
-    private final JwtAuthService jwtAuthService;
-    private final MessageService messageService;
-
     private static final String AUTHORIZATION_HEADER = "Authorization";
     private static final String BEARER_PREFIX = "Bearer ";
+    private static final String MESSAGE_JWT_INVALID_HEADER = "jwt.invalid.header.exception";
 
+    private final DefaultJwtAuthService defaultJwtAuthService;
+    private final DefaultMessageService defaultMessageService;
 
     /**
      * Проверяет заголовок Authorization:
@@ -45,7 +45,6 @@ public class JwtFilter extends OncePerRequestFilter {
             proceedNext(request, response, filterChain);
             return;
         }
-
         handleAuthentication(request, response, filterChain);
     }
 
@@ -65,7 +64,7 @@ public class JwtFilter extends OncePerRequestFilter {
             sendClientError(
                     response,
                     HttpServletResponse.SC_BAD_REQUEST,
-                    messageService.getMessage("jwt.invalid.header.exception")
+                    defaultMessageService.getMessage(MESSAGE_JWT_INVALID_HEADER)
             );
             return;
         }
@@ -95,7 +94,7 @@ public class JwtFilter extends OncePerRequestFilter {
      * Извлекает строку с токеном, обрезая префикс «Bearer ».
      */
     private String extractToken(HttpServletRequest request) {
-        return request.getHeader("Authorization").substring(BEARER_PREFIX.length()).trim();
+        return request.getHeader(AUTHORIZATION_HEADER).substring(BEARER_PREFIX.length()).trim();
     }
 
     private void tryAuthenticateAndContinue(
@@ -106,7 +105,7 @@ public class JwtFilter extends OncePerRequestFilter {
     ) throws ServletException, IOException {
 
         try {
-            Authentication authentication = jwtAuthService.authenticate(jwtToken);
+            Authentication authentication = defaultJwtAuthService.authenticate(jwtToken);
             putIntoSecurityContextIfAbsent(authentication);
             proceedNext(request, response, filterChain);
 

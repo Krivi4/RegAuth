@@ -13,26 +13,33 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
-@Table(name = "refresh_tokens")
+@Table(name = RefreshToken.TABLE_NAME)
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 public class RefreshToken {
 
+  protected static final String TABLE_NAME = "refresh_tokens";
+  private static final String COLUMN_JTI = "jti";
+  private static final String COLUMN_USERNAME = "username";
+  private static final String COLUMN_EXPIRES_AT = "expires_at";
+  private static final String COLUMN_REVOKED = "revoked";
+  private static final boolean NULLABLE = false;
+
   /** JTI токена. */
   @Id
-  @Column(name = "jti")
+  @Column(name = COLUMN_JTI)
   private UUID jti;
 
-  @Column(name = "username", nullable = false)
+  @Column(name = COLUMN_USERNAME, nullable = NULLABLE)
   private String username;
 
   /** Дата истечения. */
-  @Column(name = "expires_at", nullable = false)
+  @Column(name = COLUMN_EXPIRES_AT, nullable = NULLABLE)
   private LocalDateTime expiresAt;
 
   /** Статус отзыва. */
-  @Column(name = "revoked", nullable = false)
+  @Column(name = COLUMN_REVOKED, nullable = NULLABLE)
   private boolean revoked;
 }

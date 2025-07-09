@@ -9,14 +9,18 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-/**Конфигурационный класс для инициализации маппинга фаз JWT на соответствующие обработчики.*/
+/**
+ * Конфигурационный класс для инициализации маппинга фаз JWT на соответствующие обработчики.
+ */
 @Configuration
 public class JwtPhaseConfig {
 
-  /**Формирует отображение фаз JWT на их обработчики.*/
-  @Bean
-  public Map<Phase, JwtPhaseHandler> phaseHandlerMap(List<JwtPhaseHandler> handlers) {
-    return handlers.stream()
-      .collect(Collectors.toMap(JwtPhaseHandler::phase, h -> h));
-  }
+    /**
+     * Формирует отображение фаз JWT на их обработчики.
+     */
+    @Bean
+    public Map<Phase, JwtPhaseHandler> phaseHandlerMap(List<JwtPhaseHandler> handlers) {
+        return handlers.stream()
+                .collect(Collectors.toMap(JwtPhaseHandler::phase, h -> h));
+    }
 }

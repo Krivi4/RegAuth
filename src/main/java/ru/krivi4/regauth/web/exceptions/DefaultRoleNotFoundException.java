@@ -1,7 +1,7 @@
 package ru.krivi4.regauth.web.exceptions;
 
 import org.springframework.http.HttpStatus;
-import ru.krivi4.regauth.services.message.MessageService;
+import ru.krivi4.regauth.services.message.DefaultMessageService;
 
 /**
  * Исключение, бросаемое при отсутствии в БД роли с указанным именем.
@@ -9,10 +9,9 @@ import ru.krivi4.regauth.services.message.MessageService;
  */
 public class DefaultRoleNotFoundException extends ApiException {
 
-    public DefaultRoleNotFoundException(String roleName, MessageService messageService) {
-        super(
-                HttpStatus.NOT_FOUND,
-                messageService.getMessage("default.role.not.found.exception", roleName)
-        );
+    private static final String MSG_KEY = "default.role.not.found.exception";
+
+    public DefaultRoleNotFoundException(String roleName, DefaultMessageService ms) {
+        super(HttpStatus.NOT_FOUND, ms.getMessage(MSG_KEY, roleName));
     }
 }

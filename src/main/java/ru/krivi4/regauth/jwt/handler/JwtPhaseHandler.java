@@ -4,12 +4,18 @@ import com.auth0.jwt.interfaces.DecodedJWT;
 import org.springframework.security.core.Authentication;
 import ru.krivi4.regauth.jwt.phase.Phase;
 
-/**Интерфейс для обработчиков JWT-фаз (FULL, OTP_PENDING, REFRESH).*/
+/**
+ * Интерфейс для обработчиков JWT-фаз (FULL, OTP_PENDING, REFRESH).
+ */
 public interface JwtPhaseHandler {
 
-  /**Фаза, которую обрабатывает реализация*/
-  Phase phase();
+    /**
+     * Фаза, которую обрабатывает реализация
+     */
+    Phase phase();
 
-  /**Обрабатывает декодированный JWT и возвращает Authentication.*/
-  Authentication handle(DecodedJWT jwt);
+    /**
+     * Обрабатывает декодированный JWT и возвращает Authentication.
+     */
+    Authentication handle(DecodedJWT jwt);
 }

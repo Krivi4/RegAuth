@@ -5,7 +5,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import ru.krivi4.regauth.models.RefreshToken;
 import ru.krivi4.regauth.repositories.RefreshTokenRepository;
-import ru.krivi4.regauth.services.tokens.RefreshTokenBlackListService;
+import ru.krivi4.regauth.services.tokens.DefaultRefreshTokenBlackListService;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
@@ -21,10 +21,10 @@ import static org.mockito.Mockito.*;
  * метод isRevoked() корректно возвращает статус отзыва;
  * метод cleanExpired() вызывает очистку репозитория ровно один раз.
  */
-public class RefreshTokenBlackListServiceTest {
+public class DefaultRefreshTokenBlackListServiceTest {
 
   private RefreshTokenRepository repo;
-  private RefreshTokenBlackListService service;
+  private DefaultRefreshTokenBlackListService service;
 
   private final UUID jti = UUID.randomUUID();
 
@@ -32,7 +32,7 @@ public class RefreshTokenBlackListServiceTest {
   @BeforeEach
   void init() {
     repo = mock(RefreshTokenRepository.class);
-    service = new RefreshTokenBlackListService(repo);
+    service = new DefaultRefreshTokenBlackListService(repo);
   }
 
   /** revoke() должен установить revoked=true и сохранить сущность. */

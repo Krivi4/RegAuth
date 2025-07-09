@@ -6,7 +6,7 @@ import ru.krivi4.regauth.config.SmsProperties;
 import ru.krivi4.regauth.models.Otp;
 import ru.krivi4.regauth.ports.otp.OtpGenerator;
 import ru.krivi4.regauth.repositories.OtpRepository;
-import ru.krivi4.regauth.services.otp.OtpVerifyService;
+import ru.krivi4.regauth.services.otp.DefaultOtpVerifyService;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
@@ -19,11 +19,11 @@ import static org.mockito.Mockito.*;
  * Сценарии: успешное подтверждение, просрочка
  * и превышение лимита попыток.
  */
-class OtpVerifyServiceTest {
+class DefaultOtpVerifyServiceTest {
 
   private OtpRepository repo;
   private OtpGenerator generator;
-  private OtpVerifyService service;
+  private DefaultOtpVerifyService service;
 
   private static final String RAW_CODE = "123456";
   private static final String HASHED = "hash";
@@ -39,7 +39,7 @@ class OtpVerifyServiceTest {
     SmsProperties props = new SmsProperties();
     props.setAttempts(3);
 
-    service = new OtpVerifyService(repo, generator, props);
+    service = new DefaultOtpVerifyService(repo, generator, props);
 
     otp = new Otp();
     otp.setIdOtp(UUID.randomUUID());

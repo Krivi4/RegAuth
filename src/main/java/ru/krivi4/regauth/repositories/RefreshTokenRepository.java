@@ -11,8 +11,13 @@ import java.util.UUID;
 @Repository
 public interface RefreshTokenRepository extends JpaRepository<RefreshToken, UUID> {
 
-  /** Очистка просроченных токенов */
-  int deleteByExpiresAtBefore(LocalDateTime expiresAt);
+    /**
+     * Очистка просроченных токенов
+     */
+    int deleteByExpiresAtBefore(LocalDateTime expiresAt);
 
-  Optional<RefreshToken> findByJtiAndRevokedFalse(UUID jti);
+    /**
+     * Находит неотозванный токен по JTI.
+     */
+    Optional<RefreshToken> findByJtiAndRevokedFalse(UUID jti);
 }

@@ -7,12 +7,20 @@ import ru.krivi4.regauth.models.Otp;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-/**Репозиторий одноразовых Otp‑кодов*/
+/**
+ * Репозиторий одноразовых Otp‑кодов
+ */
 @Repository
 public interface OtpRepository extends JpaRepository<Otp, UUID> {
 
-  /** Удалить все записи, чей expiresAtOTP раньше указанного времени*/
-  int deleteByExpiresAtOTPBefore(LocalDateTime expiresAtOTP);
+    /**
+     * Удаляет все одноразовые OTP‑коды,
+     * срок действия которых истёк (expiresAtOTP раньше указанного времени).
+     */
+    int deleteByExpiresAtOTPBefore(LocalDateTime expiresAtOTP);
 
-  int deleteByPhoneNumber(String phoneNumber);
+    /**
+     * Удаляет все одноразовые OTP‑коды, связанные с указанным номером телефона.
+     */
+    int deleteByPhoneNumber(String phoneNumber);
 }

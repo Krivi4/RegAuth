@@ -50,10 +50,6 @@ databaseChangeLog:
       relativeToChangelogFile: true
 
   - include:
-      file: roles_seed.sql
-      relativeToChangelogFile: true
-
-  - include:
       file: person_role.sql
       relativeToChangelogFile: true
 

@@ -7,48 +7,40 @@ services:
   db:
     image: postgres:15            # официальный образ
     restart: always
-    environment:                  # инициализация БД
+    environment:                  # переменные окружения БД
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
       - db_data:/var/lib/postgresql/data
     ports:
-      - "5432:5432"               # доступ с хоста
+      - "5432:5432"               # доступ к Postgres с хоста
 
   # ──────────────────────────────────────────────────────────────
-  #  Spring-Boot-приложение
+  #  Spring Boot приложение
   # ──────────────────────────────────────────────────────────────
   app:
-    build: .                      # собираем по Dockerfile
+    build:
+      context: .                  # контекст сборки
+      dockerfile: Dockerfile      # Dockerfile приложения
     restart: on-failure
-    env_file: .env                # подтягива­ем все переменные
+    env_file: .env                # все переменные окружения
 
-    environment:                  # здесь только то, что нужно переопределить
-      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL}
+    environment:                  # можно переопределять значения .env здесь
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev} # dev по умолчанию
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
-      SPRING_JPA_HIBERNATE_DDL_AUTO: ${SPRING_JPA_HIBERNATE_DDL_AUTO}
-      SPRING_LIQUIBASE_ENABLED: "${SPRING_LIQUIBASE_ENABLED}"
-      SPRING_SECRET_KEY: ${SPRING_SECRET_KEY}
-
-      # SMS.ru
-      SMSRU_BASE_URL: ${SMSRU_BASE_URL}
-      SMSRU_API_ID: ${SMSRU_API_ID}
-      SMSRU_FROM: ${SMSRU_FROM}
-      SMSRU_TTL_MINUTES: ${SMSRU_TTL_MINUTES}
-      SMSRU_ATTEMPTS: ${SMSRU_ATTEMPTS}
 
     ports:
-      - "8080:8080"
+      - "8080:8080"               # API доступен на localhost:8080
     depends_on:
-      - db
+      - db                        # ждет БД перед запуском
 
   # ──────────────────────────────────────────────────────────────
-  #  pgAdmin — веб-GUI для PostgreSQL
+  #  pgAdmin — Веб GUI для PostgreSQL
   # ──────────────────────────────────────────────────────────────
   pgadmin:
-    image: dpage/pgadmin4:latest
+    image: dpage/pgadmin4:latest  # официальный pgAdmin
     restart: always
     env_file: .env
     environment:
@@ -59,8 +51,8 @@ services:
     volumes:
       - pgadmin_data:/var/lib/pgadmin
     depends_on:
-      - db
+      - db                        # ждет БД перед стартом
 
 volumes:
-  db_data:       # данные СУБД
+  db_data:       # данные PostgreSQL
   pgadmin_data:  # настройки pgAdmin

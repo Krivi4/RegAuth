@@ -6,17 +6,19 @@ import lombok.Getter;
 
 import java.time.LocalDateTime;
 
-/**Обёртка ошибки REST.*/
+/**
+ * Обёртка ошибки REST.
+ */
 @Getter
 @AllArgsConstructor
 public class ErrorResponseView {
 
-  private static final String DATE_PATTERN = "yyyy-MM-dd'T'HH:mm:ss";
+    private static final String DATE_PATTERN = "yyyy-MM-dd'T'HH:mm:ss";
 
-  @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = DATE_PATTERN)
-  private final LocalDateTime timestamp;
-  private final int status;
-  private final String error;
-  private final String message;
-  private final String path;
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = DATE_PATTERN)
+    private final LocalDateTime timestamp;
+    private final int status;
+    private final String error;
+    private final String message;
+    private final String path;
 }

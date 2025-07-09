@@ -9,9 +9,18 @@ import java.util.Optional;
 @Repository
 public interface PeopleRepository extends JpaRepository<Person, Integer> {
 
-  Optional<Person> findByUsername(String username);
+    /**
+     * Находит пользователя по имени.
+     */
+    Optional<Person> findByUsername(String username);
 
-  boolean existsByUsername(String username);
+    /**
+     * Проверяет существование пользователя по имени.
+     */
+    boolean existsByUsername(String username);
 
-  Optional<Person> findByPhoneNumber(String phoneNumber);
+    /**
+     * Находит пользователя по номеру телефона.
+     */
+    Optional<Person> findByPhoneNumber(String phoneNumber);
 }

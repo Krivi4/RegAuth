@@ -9,7 +9,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
-import ru.krivi4.regauth.services.message.MessageService;
+import ru.krivi4.regauth.services.message.DefaultMessageService;
 import ru.krivi4.regauth.views.ErrorResponseView;
 import ru.krivi4.regauth.web.exceptions.*;
 
@@ -29,9 +29,25 @@ import java.util.function.Consumer;
 @RequiredArgsConstructor
 public class GlobalExceptionHandler {
 
-    private final MessageService messageService;
+    private final DefaultMessageService defaultMessageService;
 
     private static final String URI_PREFIX = "uri=";
+    private static final String LOG_UNHANDLED_EXCEPTION = "Необработанное исключение: {}";
+    private static final String LOG_AUTH_ERROR = "Ошибка авторизации: {}";
+    private static final String LOG_OTP_ERROR = "Неверный OTP: {}";
+    private static final String LOG_USER_NOT_FOUND = "Пользователь не найден: {}";
+    private static final String LOG_PHONE_NOT_FOUND = "Телефон не найден: {}";
+    private static final String LOG_REFRESH_INVALID = "Неверный Refresh-токен: {}";
+    private static final String LOG_REFRESH_NOT_FOUND = "Refresh-токен не найден: {}";
+    private static final String LOG_ROLE_NOT_FOUND = "Базовая роль не найдена: {}";
+    private static final String LOG_TOKEN_REVOKED = "Токен отозван: {}";
+    private static final String LOG_TOKEN_TYPE_INVALID = "Неверный тип токена: {}";
+    private static final String LOG_VALIDATION_ERROR = "Ошибка валидации данных: {}";
+    private static final String LOG_SMS_ERROR = "Ошибка при отправке SMS: {}";
+    private static final String LOG_AUTH_SKIP = "Аутентификация пропущена: {}";
+    private static final String LOG_DUPLICATE_USER = "Попытка зарегистрировать уже существующего пользователя: {}";
+    private static final String LOG_JWT_INVALID = "Неверный или просроченный JWT: {}";
+    private static final String LOG_PHASE_UNKNOWN = "Неизвестная фаза JWT: {}";
 
     /**
      * Обрабатывает LoginBadCredentialsException (HTTP 401).
@@ -43,10 +59,10 @@ public class GlobalExceptionHandler {
 
         String exceptionMessage = loginBadCredentialsException.getMessage();
 
-        logException("Ошибка авторизации: {}", exceptionMessage, log::warn);
+        logException(LOG_AUTH_ERROR, exceptionMessage, log::warn);
 
         return buildErrorResponseEntity(
-                loginBadCredentialsException.getStatus(),exceptionMessage, webRequest
+                loginBadCredentialsException.getStatus(), exceptionMessage, webRequest
         );
 
     }
@@ -61,10 +77,10 @@ public class GlobalExceptionHandler {
 
         String exceptionMessage = otpTokenInvalidException.getMessage();
 
-        logException("Неверный OTP: {}", exceptionMessage, log::warn);
+        logException(LOG_OTP_ERROR, exceptionMessage, log::warn);
 
         return buildErrorResponseEntity(
-                otpTokenInvalidException.getStatus(),exceptionMessage, webRequest
+                otpTokenInvalidException.getStatus(), exceptionMessage, webRequest
         );
     }
 
@@ -78,7 +94,7 @@ public class GlobalExceptionHandler {
 
         String exceptionMessage = personUsernameNotFoundException.getMessage();
 
-        logException("Пользователь не найден: {}", exceptionMessage, log::info);
+        logException(LOG_USER_NOT_FOUND, exceptionMessage, log::info);
 
         return buildErrorResponseEntity(
                 personUsernameNotFoundException.getStatus(),
@@ -97,7 +113,7 @@ public class GlobalExceptionHandler {
 
         String exceptionMessage = personPhoneNotFoundException.getMessage();
 
-        logException("Телефон не найден: {}", exceptionMessage, log::info);
+        logException(LOG_PHONE_NOT_FOUND, exceptionMessage, log::info);
 
         return buildErrorResponseEntity(personPhoneNotFoundException.getStatus(), exceptionMessage, webRequest);
     }
@@ -112,7 +128,7 @@ public class GlobalExceptionHandler {
 
         String exceptionMessage = refreshTokenInvalidException.getMessage();
 
-        logException("Неверный Refresh-токен: {}", exceptionMessage,log::warn);
+        logException(LOG_REFRESH_INVALID, exceptionMessage, log::warn);
 
         return buildErrorResponseEntity(refreshTokenInvalidException.getStatus(), exceptionMessage, webRequest);
     }
@@ -127,7 +143,7 @@ public class GlobalExceptionHandler {
 
         String exceptionMessage = refreshTokenNotFoundException.getMessage();
 
-        logException("Refresh-токен не найден: {}", exceptionMessage, log::warn);
+        logException(LOG_REFRESH_NOT_FOUND, exceptionMessage, log::warn);
 
         return buildErrorResponseEntity(refreshTokenNotFoundException.getStatus(), exceptionMessage, webRequest);
     }
@@ -142,7 +158,7 @@ public class GlobalExceptionHandler {
 
         String exceptionMessage = defaultRoleNotFoundException.getMessage();
 
-        logException("Базовая роль не найдена: {}", exceptionMessage, log::error);
+        logException(LOG_ROLE_NOT_FOUND, exceptionMessage, log::error);
 
         return buildErrorResponseEntity(defaultRoleNotFoundException.getStatus(), exceptionMessage, webRequest);
     }
@@ -157,7 +173,7 @@ public class GlobalExceptionHandler {
 
         String exceptionMessage = tokenRevokedException.getMessage();
 
-        logException("Токен отозван: {}", exceptionMessage, log::warn);
+        logException(LOG_TOKEN_REVOKED, exceptionMessage, log::warn);
 
         return buildErrorResponseEntity(tokenRevokedException.getStatus(), exceptionMessage, webRequest);
     }
@@ -172,7 +188,7 @@ public class GlobalExceptionHandler {
 
         String exceptionMessage = typeTokenInvalidException.getMessage();
 
-        logException("Неверный тип токена: {}", exceptionMessage, log::warn);
+        logException(LOG_TOKEN_TYPE_INVALID, exceptionMessage, log::warn);
 
         return buildErrorResponseEntity(typeTokenInvalidException.getStatus(), exceptionMessage, webRequest);
     }
@@ -187,7 +203,7 @@ public class GlobalExceptionHandler {
 
         String exceptionMessage = validationException.getMessage();
 
-        logException("Ошибка валидации данных: {}", exceptionMessage, log::debug);
+        logException(LOG_VALIDATION_ERROR, exceptionMessage, log::debug);
 
         return buildErrorResponseEntity(validationException.getStatus(), exceptionMessage, webRequest);
     }
@@ -202,7 +218,7 @@ public class GlobalExceptionHandler {
 
         String exceptionMessage = smsSendException.getMessage();
 
-        logException("Ошибка при отправке SMS: {}", exceptionMessage, log::error);
+        logException(LOG_SMS_ERROR, exceptionMessage, log::error);
 
         return buildErrorResponseEntity(smsSendException.getStatus(), exceptionMessage, webRequest);
     }
@@ -217,9 +233,9 @@ public class GlobalExceptionHandler {
 
         String exceptionMessage = authenticateSkipException.getMessage();
 
-        logException("Аутентификация пропущена: {}", exceptionMessage, log::info);
+        logException(LOG_AUTH_SKIP, exceptionMessage, log::info);
 
-        return buildErrorResponseEntity(authenticateSkipException.getStatus(),exceptionMessage, webRequest);
+        return buildErrorResponseEntity(authenticateSkipException.getStatus(), exceptionMessage, webRequest);
     }
 
     /**
@@ -232,7 +248,7 @@ public class GlobalExceptionHandler {
 
         String exceptionMessage = duplicatePersonException.getMessage();
 
-        logException("Попытка зарегистрировать уже существующего пользователя: {}", exceptionMessage, log::warn);
+        logException(LOG_DUPLICATE_USER, exceptionMessage, log::warn);
 
         return buildErrorResponseEntity(duplicatePersonException.getStatus(), exceptionMessage, webRequest);
     }
@@ -247,7 +263,7 @@ public class GlobalExceptionHandler {
 
         String exceptionMessage = jwtInvalidException.getMessage();
 
-        logException("Неверный или просроченный JWT: {}", exceptionMessage, log::warn);
+        logException(LOG_JWT_INVALID, exceptionMessage, log::warn);
 
         return buildErrorResponseEntity(jwtInvalidException.getStatus(), exceptionMessage, webRequest);
     }
@@ -262,7 +278,7 @@ public class GlobalExceptionHandler {
 
         String exceptionMessage = phaseUnknownException.getMessage();
 
-        logException("Неизвестная фаза JWT: {}", exceptionMessage, log::warn);
+        logException(LOG_PHASE_UNKNOWN, exceptionMessage, log::warn);
 
         return buildErrorResponseEntity(phaseUnknownException.getStatus(), exceptionMessage, webRequest);
     }
@@ -275,7 +291,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public void handleMethodArgumentNotValidException(MethodArgumentNotValidException methodArgumentNotValidException) {
         Map<String, String> fieldErrors = extractFieldErrors(methodArgumentNotValidException.getBindingResult().getFieldErrors());
-        throw new ValidationException(fieldErrors, messageService);
+        throw new ValidationException(fieldErrors, defaultMessageService);
     }
 
     /**
@@ -288,7 +304,7 @@ public class GlobalExceptionHandler {
 
         String exceptionMessage = exception.getMessage();
 
-        log.error("Необработанное исключение: {}", exceptionMessage, exception);
+        log.error(LOG_UNHANDLED_EXCEPTION, exceptionMessage, exception);
 
         return buildErrorResponseEntity(HttpStatus.INTERNAL_SERVER_ERROR, exceptionMessage, webRequest);
     }
@@ -345,7 +361,9 @@ public class GlobalExceptionHandler {
                 ));
     }
 
-    /** Логирует сообщение с нужным уровнем и префиксом. */
+    /**
+     * Логирует сообщение с нужным уровнем и префиксом.
+     */
     private void logException(String prefix, String message, Consumer<String> logMethod) {
         logMethod.accept(prefix + message);
     }

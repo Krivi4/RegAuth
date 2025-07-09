@@ -1,12 +1,16 @@
 package ru.krivi4.regauth.web.exceptions;
 
 import org.springframework.http.HttpStatus;
-import ru.krivi4.regauth.services.message.MessageService;
+import ru.krivi4.regauth.services.message.DefaultMessageService;
 
-/**Нарушение уникальности пользователя (HTTP 409).*/
+/**
+ * Нарушение уникальности пользователя (HTTP 409).
+ */
 public class DuplicatePersonException extends ApiException {
 
-  public DuplicatePersonException(String username, MessageService messageService) {
-    super(HttpStatus.CONFLICT, messageService.getMessage("duplicate.person.exception", username));
+    private static final String MSG_KEY = "duplicate.person.exception";
+
+    public DuplicatePersonException(String username, DefaultMessageService ms) {
+        super(HttpStatus.CONFLICT, ms.getMessage(MSG_KEY, username));
     }
 }

@@ -1,9 +1,11 @@
-package ru.krivi4.regauth.views.admin;
+package ru.krivi4.regauth.views;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
-/** Ответ add/remove-role: echo username, role, message. */
+/**
+ * Ответ add/remove-role: echo username, role, message.
+ */
 @Getter
 @AllArgsConstructor
 public class RoleUpdateResponseView {

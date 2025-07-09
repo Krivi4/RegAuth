@@ -8,8 +8,8 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 import ru.krivi4.regauth.jwt.phase.Phase;
 import ru.krivi4.regauth.services.auth.PersonDetailsService;
-import ru.krivi4.regauth.services.message.MessageService;
-import ru.krivi4.regauth.services.tokens.AccessTokenBlackListService;
+import ru.krivi4.regauth.services.message.DefaultMessageService;
+import ru.krivi4.regauth.services.tokens.DefaultAccessTokenBlackListService;
 import ru.krivi4.regauth.web.exceptions.TokenRevokedException;
 
 import java.util.UUID;
@@ -21,9 +21,11 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class FullHandler implements JwtPhaseHandler {
 
+    private static final String CLAIM_USERNAME = "username";
+
     private final PersonDetailsService users;
-    private final AccessTokenBlackListService blacklist;
-    private final MessageService messageService;
+    private final DefaultAccessTokenBlackListService blacklist;
+    private final DefaultMessageService defaultMessageService;
 
     /**
      * Возвращает фазу FULL.
@@ -39,23 +41,34 @@ public class FullHandler implements JwtPhaseHandler {
     @Override
     public Authentication handle(DecodedJWT jwt) {
         UUID jti = UUID.fromString(jwt.getId());
-        String username = jwt.getClaim("username").asString();
+        String username = jwt.getClaim(CLAIM_USERNAME).asString();
 
         checkRevoked(jti);
         return buildAuthToken(loadUser(username));
     }
 
+    //*----------Вспомогательные методы----------*//
+
+    /**
+     * Создает объект Authentication для Spring Security.
+     */
     private Authentication buildAuthToken(UserDetails user) {
         return new UsernamePasswordAuthenticationToken(
                 user, user.getPassword(), user.getAuthorities());
     }
 
+    /**
+     * Проверяет, отозван ли токен по идентификатору jti.
+     */
     private void checkRevoked(UUID jti) {
         if (blacklist.isBlocked(jti)) {
-            throw new TokenRevokedException(messageService);
+            throw new TokenRevokedException(defaultMessageService);
         }
     }
 
+    /**
+     * Загружает пользователя по имени.
+     */
     private UserDetails loadUser(String username) {
         return users.loadUserByUsername(username);
     }

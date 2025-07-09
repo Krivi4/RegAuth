@@ -10,20 +10,25 @@ import ru.krivi4.regauth.repositories.PeopleRepository;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 
-/**Фиксирует дату последнего входа пользователя в систему.*/
+/**
+ * Фиксирует дату последнего входа пользователя в систему.
+ */
 @Service
 @RequiredArgsConstructor
 public class DefaultLastLoginUpdateService implements LastLoginUpdateService {
 
-  private final PeopleRepository peopleRepository;
+    private static final ZoneId MOSCOW_ZONE = ZoneId.of("Europe/Moscow");
 
-  private static final ZoneId MOSCOW_ZONE   = ZoneId.of("Europe/Moscow");
+    private final PeopleRepository peopleRepository;
 
-  /**Обновляет поле lastLogin у пользователя и сохраняет сущность.*/
-  @Override
-  @Transactional
-  public void updatedLastLogin(Person person) {
-    person.setLastLogin(LocalDateTime.now(MOSCOW_ZONE));
-    peopleRepository.save(person);
-  }
+    /**
+     * Устанавливает дату последнего входа пользователя.
+     * Обновляет поле lastLogin у пользователя и сохраняет сущность.
+     */
+    @Override
+    @Transactional
+    public void updatedLastLogin(Person person) {
+        person.setLastLogin(LocalDateTime.now(MOSCOW_ZONE));
+        peopleRepository.save(person);
+    }
 }

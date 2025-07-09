@@ -1,12 +1,16 @@
 package ru.krivi4.regauth.web.exceptions;
 
 import org.springframework.http.HttpStatus;
-import ru.krivi4.regauth.services.message.MessageService;
+import ru.krivi4.regauth.services.message.DefaultMessageService;
 
-/**Неверный или просроченный JWT (HTTP 400).*/
+/**
+ * Неверный или просроченный JWT (HTTP 400).
+ */
 public class JwtInvalidException extends ApiException {
 
-  public JwtInvalidException(MessageService messageService) {
-    super(HttpStatus.BAD_REQUEST, messageService.getMessage("jwt.invalid.exception"));
-  }
+    private static final String MSG_KEY = "jwt.invalid.exception";
+
+    public JwtInvalidException(DefaultMessageService ms) {
+        super(HttpStatus.BAD_REQUEST, ms.getMessage(MSG_KEY));
+    }
 }

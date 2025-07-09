@@ -10,18 +10,22 @@ import org.springframework.http.HttpStatus;
 @Getter
 public abstract class ApiException extends RuntimeException {
 
-  private final HttpStatus status;
-  /**Создаёт исключение с HTTP-статусом и сообщением.*/
-  public ApiException(HttpStatus status, String message) {
-    super(message);
-    this.status = status;
-  }
-/**
- * Создаёт исключение с HTTP-статусом, сообщением и причиной ошибки.
- */
-  public ApiException(HttpStatus status, String message, Throwable cause) {
-    super(message, cause);
-    this.status = status;
-  }
+    private final HttpStatus status;
+
+    /**
+     * Создаёт исключение с HTTP-статусом и сообщением.
+     */
+    public ApiException(HttpStatus status, String message) {
+        super(message);
+        this.status = status;
+    }
+
+    /**
+     * Создаёт исключение с HTTP-статусом, сообщением и причиной ошибки.
+     */
+    public ApiException(HttpStatus status, String message, Throwable cause) {
+        super(message, cause);
+        this.status = status;
+    }
 
 }

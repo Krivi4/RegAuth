@@ -5,14 +5,16 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.retry.annotation.EnableRetry;
 import org.springframework.web.client.RestTemplate;
 
-/**Общая конфигурация бинов приложения.*/
+/**
+ * Общая конфигурация бинов приложения.
+ */
 @Configuration
 @EnableRetry
 public class AppConfig {
 
-  @Bean
-  public RestTemplate restTemplate() {
+    @Bean
+    public RestTemplate restTemplate() {
 
-    return new RestTemplate();
-  }
+        return new RestTemplate();
+    }
 }

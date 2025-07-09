@@ -25,66 +25,72 @@ import ru.krivi4.regauth.security.filter.JwtLogoutSuccessHandler;
 @RequiredArgsConstructor
 public class SecurityConfig extends WebSecurityConfigurerAdapter {
 
-  private final PersonDetailsService personDetailsService;
-  private final JwtFilter jwtFilter;
-  private final JwtLogoutSuccessHandler jwtLogoutSuccessHandler;
+    private static final String ROLE_ADMIN = "ADMIN";
+    private static final String LOGOUT_URL = "/api/v1/auth/logout";
+    private static final String[] ALLOWED_URLS = new String[]{
+            "/api/v1/auth/login",
+            "/api/v1/auth/registration",
+            "/api/v1/auth/registration/verify",
+            "/api/v1/auth/login/verify",
+            "/api/v1/auth/refresh",
+            "/error",
+    };
+    private static final String[] SWAGGER_URLS = new String[]{
+            "/swagger-ui/**",
+            "/v3/api-docs/**",
+            "/swagger-ui.html",
+            "/swagger-resources/**",
+            "/webjars/**"
+    };
 
-  private final String[] ALLOWED_URLS = new String[]{
-          "/api/v1/auth/login",
-          "/api/v1/auth/registration",
-          "/api/v1/auth/registration/verify",
-          "/api/v1/auth/login/verify",
-          "/api/v1/auth/refresh",
-          "/error",
-  };
+    private final PersonDetailsService personDetailsService;
+    private final JwtFilter jwtFilter;
+    private final JwtLogoutSuccessHandler jwtLogoutSuccessHandler;
 
-  private final String[] SWAGGER_URLS = new String[]{
-          "/swagger-ui/**",
-          "/v3/api-docs/**",
-          "/swagger-ui.html",
-          "/swagger-resources/**",
-          "/webjars/**"
-  };
+    /**
+     * Настраивает HTTP Security: отключение CSRF, правила доступа, logout и stateless-сессии.
+     */
+    protected void configure(HttpSecurity http) throws Exception {
+        http
+                .csrf().disable()
+                .authorizeRequests()
+                .antMatchers(SWAGGER_URLS).hasRole(ROLE_ADMIN)
+                .antMatchers(ALLOWED_URLS)
+                .permitAll()
+                .anyRequest().authenticated()
+                .and()
+                .logout()
+                .logoutUrl(LOGOUT_URL)
+                .logoutSuccessHandler(jwtLogoutSuccessHandler)
+                .and()
+                .sessionManagement()
+                .sessionCreationPolicy(SessionCreationPolicy.STATELESS);
 
-  public static final String ROLE_ADMIN = "ADMIN";
+        http.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
+    }
 
-  /**Настраивает HTTP Security: отключение CSRF, правила доступа, logout и stateless-сессии.*/
-  protected void configure(HttpSecurity http) throws Exception {
+    /**
+     * Настраивает провайдера аутентификации с BCrypt.
+     */
+    @Override
+    protected void configure(AuthenticationManagerBuilder auth) throws Exception {
+        auth.userDetailsService(personDetailsService).passwordEncoder(getPasswordEncoder());
+    }
 
-    http
-      .csrf().disable()
-      .authorizeRequests()
-      .antMatchers(SWAGGER_URLS).hasRole(ROLE_ADMIN)
-      .antMatchers(ALLOWED_URLS)
-      .permitAll()
-      .anyRequest().authenticated()
-      .and()
-      .logout()
-      .logoutUrl("/api/v1/auth/logout")
-      .logoutSuccessHandler(jwtLogoutSuccessHandler)
-      .and()
-      .sessionManagement()
-      .sessionCreationPolicy(SessionCreationPolicy.STATELESS);
+    /**
+     * Бин для шифрования паролей BCryptPasswordEncoder.
+     */
+    @Bean
+    public PasswordEncoder getPasswordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
 
-    http.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
-  }
-  /** Настраивает провайдера аутентификации с BCrypt.*/
-  @Override
-  protected void configure(AuthenticationManagerBuilder auth) throws Exception {
-
-    auth.userDetailsService(personDetailsService).passwordEncoder(getPasswordEncoder());
-}
-  /**Бин для шифрования паролей BCryptPasswordEncoder.*/
-  @Bean
-  public PasswordEncoder getPasswordEncoder(){
-
-    return new BCryptPasswordEncoder();
-}
-    /**Бин необходимый для аутентификации.*/
-  @Bean
-  @Override
-  public AuthenticationManager authenticationManagerBean() throws Exception {
-
-    return super.authenticationManagerBean();
-  }
+    /**
+     * Бин необходимый для аутентификации.
+     */
+    @Bean
+    @Override
+    public AuthenticationManager authenticationManagerBean() throws Exception {
+        return super.authenticationManagerBean();
+    }
 }

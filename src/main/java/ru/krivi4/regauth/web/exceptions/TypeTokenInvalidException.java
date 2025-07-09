@@ -1,12 +1,17 @@
 package ru.krivi4.regauth.web.exceptions;
 
 import org.springframework.http.HttpStatus;
-import ru.krivi4.regauth.services.message.MessageService;
+import ru.krivi4.regauth.services.message.DefaultMessageService;
 
-/**Неверный тип токена (HTTP 400).*/
+/**
+ * Тип токена не соответствует ожидаемому.
+ * HTTP 400 Bad Request.
+ */
 public class TypeTokenInvalidException extends ApiException {
 
-  public TypeTokenInvalidException(String phaseToken, MessageService messageService) {
-    super(HttpStatus.BAD_REQUEST, messageService.getMessage("type.token.invalid.exception", phaseToken));
-  }
+    private static final String MSG_KEY = "type.token.invalid.exception";
+
+    public TypeTokenInvalidException(String phaseToken, DefaultMessageService ms) {
+        super(HttpStatus.BAD_REQUEST, ms.getMessage(MSG_KEY, phaseToken));
+    }
 }

@@ -1,19 +1,24 @@
-# === Этап сборки приложения ===
-FROM maven:3.8.5-openjdk-11 AS build
+# === Stage 1: Сборка приложения ===
+FROM maven:3.8.5-openjdk-17 AS build
 WORKDIR /app
+
+# Кэшируем зависимости
 COPY pom.xml .
+RUN mvn dependency:go-offline
+
+# Копируем исходники и собираем
 COPY src ./src
 RUN mvn clean package -DskipTests
 
-# === Этап рантайма ===
-FROM openjdk:11-jre-slim
+# === Stage 2: Рантайм образ ===
+FROM openjdk:17-jdk-slim
 WORKDIR /app
 
-# Копируем собранный JAR из предыдущего этапа
+# Копируем собранный jar-файл
 COPY --from=build /app/target/RegAuth-*.jar app.jar
 
-# Публикуем порт, на котором приложение слушает HTTP
+# Порт, который слушает Spring Boot
 EXPOSE 8080
 
-# Команда запуска при старте контейнера
+# Старт приложения
 ENTRYPOINT ["java", "-jar", "app.jar"]

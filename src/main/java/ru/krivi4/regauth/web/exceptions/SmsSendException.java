@@ -1,31 +1,22 @@
 package ru.krivi4.regauth.web.exceptions;
 
 import org.springframework.http.HttpStatus;
-import ru.krivi4.regauth.services.message.MessageService;
+import ru.krivi4.regauth.services.message.DefaultMessageService;
 
 /**
- * Ошибка при отправке SMS через SMS.RU (HTTP 400).
+ * Ошибка, полученная от SMS.RU: status-/delivery-code.
+ * HTTP 400 Bad Request.
  */
 public class SmsSendException extends ApiException {
 
-    /**
-     * Конструктор с кодом ошибки (например, status или delivery error).
-     */
-    public SmsSendException(String code, MessageService messageService) {
-        super(
-                HttpStatus.BAD_REQUEST,
-                messageService.getMessage("sms.send.status.exception", code)
-        );
+    private static final String MSG_STATUS_KEY = "sms.send.status.exception";
+    private static final String MSG_DELIVERY_KEY = "sms.send.delivery.exception";
+
+    public SmsSendException(String code, DefaultMessageService ms) {
+        super(HttpStatus.BAD_REQUEST, ms.getMessage(MSG_STATUS_KEY, code));
     }
 
-    /**
-     * Конструктор с текстом ошибки и первопричиной.
-     */
-    public SmsSendException(String text, Throwable cause, MessageService messageService) {
-        super(
-                HttpStatus.BAD_REQUEST,
-                messageService.getMessage("sms.send.delivery.exception", text),
-                cause
-        );
+    public SmsSendException(String text, Throwable cause, DefaultMessageService ms) {
+        super(HttpStatus.BAD_REQUEST, ms.getMessage(MSG_DELIVERY_KEY, text), cause);
     }
 }

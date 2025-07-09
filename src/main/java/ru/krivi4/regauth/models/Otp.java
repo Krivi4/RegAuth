@@ -13,28 +13,48 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
-@Table(name = "otp_codes")
-@Getter @Setter
+@Table(name = Otp.TABLE_NAME)
+@Getter
+@Setter
 @Accessors(chain = true)
 @NoArgsConstructor
 public class Otp {
 
-  /** Уникальный идентификатор Otp. */
-  @Id
-  @Column(name = "id")
-  private UUID idOtp;
+    protected static final String TABLE_NAME = "otp_codes";
+    private static final String COLUMN_ID = "id";
+    private static final String COLUMN_PHONE_NUMBER = "phone_number";
+    private static final String COLUMN_CODE_HASH = "code_hash";
+    private static final String COLUMN_EXPIRES_AT = "expires_at";
+    private static final String COLUMN_ATTEMPTS = "attempts";
 
-  @Column(name = "phone_number")
-  private String phoneNumber;
+    /**
+     * Уникальный идентификатор Otp.
+     */
+    @Id
+    @Column(name = COLUMN_ID)
+    private UUID idOtp;
 
-  @Column(name = "code_hash")
-  private String codeHash;
+    /**
+     * Номер телефона, связанный с кодом.
+     */
+    @Column(name = COLUMN_PHONE_NUMBER)
+    private String phoneNumber;
 
-  /** Дата и время истечения. */
-  @Column(name = "expires_at")
-  private LocalDateTime expiresAtOTP;
+    /**
+     * Хэшированный код подтверждения.
+     */
+    @Column(name = COLUMN_CODE_HASH)
+    private String codeHash;
 
-  /** Число попыток ввода. */
-  @Column(name = "attempts")
-  private int attempts;
+    /**
+     * Дата и время истечения.
+     */
+    @Column(name = COLUMN_EXPIRES_AT)
+    private LocalDateTime expiresAtOTP;
+
+    /**
+     * Число попыток ввода.
+     */
+    @Column(name = COLUMN_ATTEMPTS)
+    private int attempts;
 }

@@ -10,7 +10,7 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
-@Table(name = "revoked_access_tokens")
+@Table(name = RevokedAccessToken.TABLE_NAME)
 @Getter
 @Setter
 @NoArgsConstructor
@@ -18,12 +18,21 @@ import java.util.UUID;
 @AllArgsConstructor
 public class RevokedAccessToken {
 
-  /** JTI токена. */
-  @Id
-  @Column(name = "jti")
-  private UUID jti;
+    protected static final String TABLE_NAME = "revoked_access_tokens";
+    private static final String COLUMN_JTI = "jti";
+    private static final String COLUMN_EXPIRES_AT = "expires_at";
+    private static final boolean NULLABLE = false;
 
-  /** Дата истечения (для очистки). */
-  @Column(name = "expires_at", nullable = false)
-  private LocalDateTime expiresAt;
+    /**
+     * JTI токена.
+     */
+    @Id
+    @Column(name = COLUMN_JTI)
+    private UUID jti;
+
+    /**
+     * Дата истечения (для очистки).
+     */
+    @Column(name = COLUMN_EXPIRES_AT, nullable = NULLABLE)
+    private LocalDateTime expiresAt;
 }

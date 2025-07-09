@@ -8,8 +8,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.security.core.Authentication;
 import ru.krivi4.regauth.jwt.phase.Phase;
 import ru.krivi4.regauth.jwt.handler.JwtPhaseHandler;
-import ru.krivi4.regauth.jwt.util.JwtUtil;
-import ru.krivi4.regauth.security.auth.JwtAuthService;
+import ru.krivi4.regauth.jwt.util.DefaultJwtUtil;
+import ru.krivi4.regauth.security.auth.DefaultJwtAuthService;
 import ru.krivi4.regauth.web.exceptions.PhaseUnknownException;
 
 import java.util.Map;
@@ -36,7 +36,7 @@ class JwtAuthServiceTest {
 
   @Test
   void authenticate_shouldDelegateToHandler() {
-    JwtUtil util = mock(JwtUtil.class);
+    DefaultJwtUtil util = mock(DefaultJwtUtil.class);
     DecodedJWT jwt = mock(DecodedJWT.class);
     Claim fullClaim = mock(Claim.class);
 
@@ -50,7 +50,7 @@ class JwtAuthServiceTest {
     when(handler.phase()).thenReturn(Phase.FULL);
     when(handler.handle(jwt)).thenReturn(expected);
 
-    JwtAuthService service = new JwtAuthService(util, Map.of(Phase.FULL, handler));
+    DefaultJwtAuthService service = new DefaultJwtAuthService(util, Map.of(Phase.FULL, handler));
 
     assertThat(service.authenticate("RAW")).isSameAs(expected);
   }
@@ -63,7 +63,7 @@ class JwtAuthServiceTest {
 
   @Test
   void authenticate_shouldThrowWhenNoHandler() {
-    JwtUtil util = mock(JwtUtil.class);
+    DefaultJwtUtil util = mock(DefaultJwtUtil.class);
     DecodedJWT jwt = mock(DecodedJWT.class);
     Claim fakePhase = mock(Claim.class);
 
@@ -71,7 +71,7 @@ class JwtAuthServiceTest {
     when(jwt.getClaim("phase")).thenReturn(fakePhase);
     when(util.decode("RAW")).thenReturn(jwt);
 
-    JwtAuthService service = new JwtAuthService(util, Map.of());
+    DefaultJwtAuthService service = new DefaultJwtAuthService(util, Map.of());
 
     assertThatThrownBy(() -> service.authenticate("RAW"))
       .isInstanceOf(PhaseUnknownException.class);

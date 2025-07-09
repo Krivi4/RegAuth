@@ -1,0 +1,28 @@
+spring:
+  profiles:          # ← профили по умолчанию
+    default: dev     # активируется, если SPRING_PROFILES_ACTIVE не задан
+
+  application:
+    name: RegAuth
+
+  # ── Internationalization ───────────────────────────────
+  messages:
+    basename: messages
+    encoding: UTF-8
+
+  # ── Liquibase (общие) ───────────────────────────────────
+  liquibase:
+    change-log: classpath:db/changelog/db.changelog-master.yaml
+    default-schema: security
+    liquibase-schema: public
+    enabled: ${SPRING_LIQUIBASE_ENABLED:true}
+
+jwt:                          # ── JWT
+  secret: ${SPRING_SECRET_KEY}
+
+smsru:                        # ── SMS.ru
+  base-url:   ${SMSRU_BASE_URL}
+  api-id:     ${SMSRU_API_ID}
+  from:       ${SMSRU_FROM}
+  ttl-minutes: ${SMSRU_TTL_MINUTES}
+  attempts:    ${SMSRU_ATTEMPTS}

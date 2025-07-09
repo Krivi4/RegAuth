@@ -1,17 +1,17 @@
 package ru.krivi4.regauth.web.exceptions;
 
 import org.springframework.http.HttpStatus;
-import ru.krivi4.regauth.services.message.MessageService;
+import ru.krivi4.regauth.services.message.DefaultMessageService;
 
 /**
- * Refresh-токен не найден в БД (HTTP 404).
+ * Refresh-токен с указанным идентификатором не найден.
+ * HTTP 404 Not Found.
  */
 public class RefreshTokenNotFoundException extends ApiException {
 
-    public RefreshTokenNotFoundException(String tokenId, MessageService messageService) {
-        super(
-                HttpStatus.NOT_FOUND,
-                messageService.getMessage("refresh.token.not.found.exception", tokenId)
-        );
+    private static final String MSG_KEY = "refresh.token.not.found.exception";
+
+    public RefreshTokenNotFoundException(String tokenId, DefaultMessageService ms) {
+        super(HttpStatus.NOT_FOUND, ms.getMessage(MSG_KEY, tokenId));
     }
 }

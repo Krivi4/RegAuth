@@ -1,21 +1,24 @@
 package ru.krivi4.regauth.web.exceptions;
 
-
 import lombok.Getter;
 import org.springframework.http.HttpStatus;
-import ru.krivi4.regauth.services.message.MessageService;
+import ru.krivi4.regauth.services.message.DefaultMessageService;
 
 import java.util.Map;
 
-/**Ошибка валидации входящих данных (HTTP 400).*/
+/**
+ * Ошибка валидации входящих данных.
+ * HTTP 400 Bad Request.
+ */
 @Getter
 public class ValidationException extends ApiException {
 
-  private final Map<String, String> errors;
+    private static final String MSG_KEY = "validation.exception";
 
-  public ValidationException(Map<String, String> errors, MessageService messageService) {
+    private final Map<String, String> errors;
 
-    super(HttpStatus.BAD_REQUEST, messageService.getMessage("validation.exception"));
-    this.errors = errors;
-  }
+    public ValidationException(Map<String, String> errors, DefaultMessageService ms) {
+        super(HttpStatus.BAD_REQUEST, ms.getMessage(MSG_KEY));
+        this.errors = errors;
+    }
 }

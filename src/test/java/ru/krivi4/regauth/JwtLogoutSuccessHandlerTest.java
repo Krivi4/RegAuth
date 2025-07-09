@@ -8,8 +8,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import ru.krivi4.regauth.security.filter.JwtLogoutSuccessHandler;
-import ru.krivi4.regauth.services.tokens.AccessTokenBlackListService;
-import ru.krivi4.regauth.services.tokens.RefreshTokenBlackListService;
+import ru.krivi4.regauth.services.tokens.DefaultAccessTokenBlackListService;
+import ru.krivi4.regauth.services.tokens.DefaultRefreshTokenBlackListService;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -25,8 +25,8 @@ import static org.mockito.Mockito.*;
 
 public class JwtLogoutSuccessHandlerTest {
 
-  private AccessTokenBlackListService  accessBL;
-  private RefreshTokenBlackListService refreshBL;
+  private DefaultAccessTokenBlackListService  accessBL;
+  private DefaultRefreshTokenBlackListService refreshBL;
   private JwtLogoutSuccessHandler      handler;
 
   private String accessJwt;
@@ -41,8 +41,8 @@ public class JwtLogoutSuccessHandlerTest {
 
   @BeforeEach
   void init() {
-    accessBL  = mock(AccessTokenBlackListService.class);
-    refreshBL = mock(RefreshTokenBlackListService.class);
+    accessBL  = mock(DefaultAccessTokenBlackListService.class);
+    refreshBL = mock(DefaultRefreshTokenBlackListService.class);
     handler   = new JwtLogoutSuccessHandler(accessBL, refreshBL);
 
     Algorithm algo = Algorithm.HMAC256("dummy");

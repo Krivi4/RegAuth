@@ -1,12 +1,16 @@
 package ru.krivi4.regauth.web.exceptions;
 
 import org.springframework.http.HttpStatus;
-import ru.krivi4.regauth.services.message.MessageService;
+import ru.krivi4.regauth.services.message.DefaultMessageService;
 
-/**Неверные учётные данные при логине (HTTP 401).*/
+/**
+ * Неверные учётные данные при логине (HTTP 401).
+ */
 public class LoginBadCredentialsException extends ApiException {
 
-  public LoginBadCredentialsException(MessageService messageService) {
-    super(HttpStatus.UNAUTHORIZED, messageService.getMessage("login.bad.credentials.exception"));
-  }
+    private static final String MSG_KEY = "login.bad.credentials.exception";
+
+    public LoginBadCredentialsException(DefaultMessageService ms) {
+        super(HttpStatus.UNAUTHORIZED, ms.getMessage(MSG_KEY));
+    }
 }

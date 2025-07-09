@@ -10,7 +10,7 @@ import ru.krivi4.regauth.models.Otp;
 import ru.krivi4.regauth.ports.otp.OtpGenerator;
 import ru.krivi4.regauth.ports.otp.OtpSender;
 import ru.krivi4.regauth.repositories.OtpRepository;
-import ru.krivi4.regauth.services.otp.OtpSendService;
+import ru.krivi4.regauth.services.otp.DefaultOtpSendService;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -30,13 +30,13 @@ class OtpSendServiceTest {
   private OtpRepository repo;
   private OtpGenerator  gen;
   private OtpSender     sender;
-  private OtpSendService service;
+  private DefaultOtpSendService service;
 
   private SmsProperties props;
 
 
   */
-/**Инициализирует моки, свойства TTL и OtpSendService.*//*
+/**Инициализирует моки, свойства TTL и DefaultOtpSendService.*//*
 
   @BeforeEach
   void setUp() {
@@ -47,7 +47,7 @@ class OtpSendServiceTest {
     props = new SmsProperties();
     props.setTtlMinutes(5);
 
-    service = new OtpSendService(gen, sender, repo, props);
+    service = new DefaultOtpSendService(gen, sender, repo, props);
 
     when(gen.generateCode()).thenReturn("654321");
     when(gen.hash("654321")).thenReturn("HASH");
