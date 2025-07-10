@@ -13,14 +13,8 @@ public class SmsRuResponseView {
 
     private static final String STATUS_TEXT_KEY = "status_text";
 
-    /**
-     * Общий статус выполнения запроса.
-     */
     private String status;
 
-    /**
-     * Описательный текст статуса ответа.
-     */
     @JsonProperty(STATUS_TEXT_KEY)
     private String statusText;
 
@@ -31,9 +25,6 @@ public class SmsRuResponseView {
      */
     private Map<String, SmsInfo> sms;
 
-    /**
-     * Информация об отправке SMS одному получателю.
-     */
     @Data
     public static class SmsInfo {
         private String status;

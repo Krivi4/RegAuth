@@ -2,26 +2,45 @@ package ru.krivi4.regauth.utils;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
-import ru.krivi4.regauth.services.message.DefaultMessageService;
+import ru.krivi4.regauth.services.message.MessageService;
 
 /**
- * Валидация учётных данных.
+ * Реализация валидатора паролей.
+ * Проверяет пароль на соответствие минимальной длине.
  */
 @Component
 @RequiredArgsConstructor
 public class DefaultCredentialValidator implements CredentialValidator {
 
-    private static final int MINIMAL_PASSWORD_LENGTH = 8;
-    private static final String PASSWORD_LENGTH_MSG_KEY = "password.length.validation.exception";
+    private static final int MIN_PASSWORD_LENGTH = 8;
+    private static final String PASSWORD_LENGTH_ERROR_KEY = "password.length.validation.exception";
 
-    private final DefaultMessageService defaultMessageService;
+    private final MessageService messageService;
 
+    /**
+     * Проверяет, соответствует ли пароль минимальной длине.
+     * Если длина меньше допустимой — выбрасывает исключение.
+     */
     @Override
     public void isValidPassword(String password) {
-        if (password.length() < MINIMAL_PASSWORD_LENGTH) {
-            throw new IllegalArgumentException(
-                    defaultMessageService.getMessage(PASSWORD_LENGTH_MSG_KEY)
-            );
+        if (isTooShort(password)) {
+            throwPasswordTooShortException();
         }
+    }
+
+    /* ---------- Вспомогательные методы ---------- */
+
+    /**
+     * Проверяет, короче ли пароль минимальной длины.
+     */
+    private boolean isTooShort(String password) {
+        return password.length() < MIN_PASSWORD_LENGTH;
+    }
+
+    /**
+     * Выбрасывает IllegalArgumentException с сообщением из ресурсов.
+     */
+    private void throwPasswordTooShortException() {
+        throw new IllegalArgumentException(messageService.getMessage(PASSWORD_LENGTH_ERROR_KEY));
     }
 }

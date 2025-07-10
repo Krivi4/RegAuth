@@ -20,26 +20,32 @@ import java.util.UUID;
 @AllArgsConstructor
 public class RefreshToken {
 
-  protected static final String TABLE_NAME = "refresh_tokens";
-  private static final String COLUMN_JTI = "jti";
-  private static final String COLUMN_USERNAME = "username";
-  private static final String COLUMN_EXPIRES_AT = "expires_at";
-  private static final String COLUMN_REVOKED = "revoked";
-  private static final boolean NULLABLE = false;
+    protected static final String TABLE_NAME = "refresh_tokens";
+    private static final String COLUMN_JTI = "jti";
+    private static final String COLUMN_USERNAME = "username";
+    private static final String COLUMN_EXPIRES_AT = "expires_at";
+    private static final String COLUMN_REVOKED = "revoked";
+    private static final boolean NULLABLE = false;
 
-  /** JTI токена. */
-  @Id
-  @Column(name = COLUMN_JTI)
-  private UUID jti;
+    /**
+     * JTI токена.
+     */
+    @Id
+    @Column(name = COLUMN_JTI)
+    private UUID jti;
 
-  @Column(name = COLUMN_USERNAME, nullable = NULLABLE)
-  private String username;
+    @Column(name = COLUMN_USERNAME, nullable = NULLABLE)
+    private String username;
 
-  /** Дата истечения. */
-  @Column(name = COLUMN_EXPIRES_AT, nullable = NULLABLE)
-  private LocalDateTime expiresAt;
+    /**
+     * Дата истечения.
+     */
+    @Column(name = COLUMN_EXPIRES_AT, nullable = NULLABLE)
+    private LocalDateTime expiresAt;
 
-  /** Статус отзыва. */
-  @Column(name = COLUMN_REVOKED, nullable = NULLABLE)
-  private boolean revoked;
+    /**
+     * Статус отзыва.
+     */
+    @Column(name = COLUMN_REVOKED, nullable = NULLABLE)
+    private boolean revoked;
 }

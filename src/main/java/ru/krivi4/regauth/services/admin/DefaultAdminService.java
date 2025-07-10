@@ -10,7 +10,7 @@ import ru.krivi4.regauth.models.Role;
 import ru.krivi4.regauth.repositories.PeopleRepository;
 import ru.krivi4.regauth.repositories.RefreshTokenRepository;
 import ru.krivi4.regauth.repositories.RoleRepository;
-import ru.krivi4.regauth.services.message.DefaultMessageService;
+import ru.krivi4.regauth.services.message.MessageService;
 import ru.krivi4.regauth.views.AdminActionResponseView;
 import ru.krivi4.regauth.views.RoleUpdateResponseView;
 import ru.krivi4.regauth.views.AdminUserView;
@@ -45,99 +45,195 @@ public class DefaultAdminService implements AdminService {
     private final PeopleRepository peopleRepository;
     private final RoleRepository roleRepository;
     private final RefreshTokenRepository refreshTokenRepository;
-    private final DefaultMessageService defaultMessageService;
+    private final MessageService messageService;
     private final AdminUserViewMapper adminUserViewMapper;
 
-    /** Возвращает список всех пользователей (DTO). */
+    /** Возвращает список всех пользователей в формате AdminUserView. */
     @Override
     @Transactional(readOnly = READ_ONLY)
     public List<AdminUserView> getAllUsers() {
-        return adminUserViewMapper.toViewList(peopleRepository.findAll());
+        List<Person> users = loadAllUsers();
+        return mapUsersToView(users);
     }
 
-    /** Добавляет роль пользователю. */
+    /** Добавляет роль пользователю и возвращает результат операции. */
     @Override
     @Transactional
     public RoleUpdateResponseView addRoleToUser(String username, String roleName) {
-        Person person = getPerson(username);
-        Role role = getRole(roleName);
+        Person person = loadPerson(username);
+        Role role = loadRole(roleName);
 
-        person.getRoles().add(role);
-        peopleRepository.save(person);
+        addRole(person, role);
+        savePerson(person);
 
         return buildRoleUpdateResponse(ROLE_ADDED_MSG_KEY, username, roleName);
     }
 
-    /** Удаляет роль у пользователя. */
+    /** Удаляет роль у пользователя и возвращает результат операции. */
     @Override
     @Transactional
     public RoleUpdateResponseView removeRoleFromUser(String username, String roleName) {
-        Person person = getPerson(username);
-        Role role = getRole(roleName);
+        Person person = loadPerson(username);
+        Role role = loadRole(roleName);
 
-        person.getRoles().remove(role);
-        peopleRepository.save(person);
+        removeRole(person, role);
+        savePerson(person);
 
         return buildRoleUpdateResponse(ROLE_REMOVED_MSG_KEY, username, roleName);
     }
 
-    /** Активирует или блокирует пользователя. */
+    /** Активирует или блокирует пользователя и возвращает результат операции. */
     @Override
     @Transactional
     public AdminActionResponseView setUserEnabled(String username, boolean enabled) {
-        Person person = getPerson(username);
-        person.setEnabled(enabled);
-        peopleRepository.save(person);
+        Person person = loadPerson(username);
 
-        String status = enabled ? STATUS_ENABLED : STATUS_DISABLED;
+        updateUserEnabledStatus(person, enabled);
+        savePerson(person);
+
+        String status = resolveUserStatus(enabled);
         return buildActionResponse(USER_STATUS_MSG_KEY, username, status);
     }
 
-    /** Блокирует или разблокирует refresh-токен. */
+    /** Блокирует или разблокирует refresh-токен и возвращает результат операции. */
     @Override
     @Transactional
     public AdminActionResponseView setRefreshRevoked(UUID jti, boolean revoked) {
-        RefreshToken token = getRefreshToken(jti);
-        token.setRevoked(revoked);
-        refreshTokenRepository.save(token);
+        RefreshToken token = loadRefreshToken(jti);
 
-        String status = revoked ? STATUS_REVOKED : STATUS_ACTIVE;
+        updateRefreshTokenRevokedStatus(token, revoked);
+        saveRefreshToken(token);
+
+        String status = resolveRefreshStatus(revoked);
         return buildActionResponse(REFRESH_STATUS_MSG_KEY, jti.toString(), status);
     }
 
-    /** Полностью удаляет пользователя. */
+    /** Полностью удаляет пользователя и возвращает результат операции. */
     @Override
     @Transactional
     public AdminActionResponseView deleteUser(String username) {
-        Person person = getPerson(username);
-        peopleRepository.delete(person);
+        Person person = loadPerson(username);
+
+        deletePerson(person);
         return buildActionResponse(USER_DELETED_MSG_KEY, username);
     }
 
-    /* ---------- вспомогательные методы-------------- */
+    //*----------Вспомогательные методы----------*//
 
-    private Person getPerson(String username) {
+    /**
+     * Загружает всех пользователей из базы данных.
+     */
+    private List<Person> loadAllUsers() {
+        return peopleRepository.findAll();
+    }
+
+    /**
+     * Преобразует список пользователей в AdminUserView.
+     */
+    private List<AdminUserView> mapUsersToView(List<Person> users) {
+        return adminUserViewMapper.toViewList(users);
+    }
+
+    /**
+     * Загружает пользователя по имени или бросает исключение.
+     */
+    private Person loadPerson(String username) {
         return peopleRepository.findByUsername(username)
-                .orElseThrow(() -> new PersonUsernameNotFoundException(defaultMessageService));
+                .orElseThrow(() -> new PersonUsernameNotFoundException(messageService));
     }
 
-    private Role getRole(String roleName) {
+    /**
+     * Загружает роль по имени или бросает исключение.
+     */
+    private Role loadRole(String roleName) {
         return roleRepository.findByName(roleName)
-                .orElseThrow(() -> new DefaultRoleNotFoundException(roleName, defaultMessageService));
+                .orElseThrow(() -> new DefaultRoleNotFoundException(roleName, messageService));
     }
 
-    private RefreshToken getRefreshToken(UUID jti) {
+    /**
+     * Загружает refresh-токен по идентификатору или бросает исключение.
+     */
+    private RefreshToken loadRefreshToken(UUID jti) {
         return refreshTokenRepository.findById(jti)
-                .orElseThrow(() -> new RefreshTokenNotFoundException(jti.toString(), defaultMessageService));
+                .orElseThrow(() -> new RefreshTokenNotFoundException(jti.toString(), messageService));
     }
 
+    /**
+     * Добавляет роль пользователю.
+     */
+    private void addRole(Person person, Role role) {
+        person.getRoles().add(role);
+    }
+
+    /**
+     * Удаляет роль у пользователя.
+     */
+    private void removeRole(Person person, Role role) {
+        person.getRoles().remove(role);
+    }
+
+    /**
+     * Обновляет статус активности пользователя.
+     */
+    private void updateUserEnabledStatus(Person person, boolean enabled) {
+        person.setEnabled(enabled);
+    }
+
+    /**
+     * Обновляет статус заблокированности refresh-токена.
+     */
+    private void updateRefreshTokenRevokedStatus(RefreshToken token, boolean revoked) {
+        token.setRevoked(revoked);
+    }
+
+    /**
+     * Определяет статус пользователя по флагу активности.
+     */
+    private String resolveUserStatus(boolean enabled) {
+        return enabled ? STATUS_ENABLED : STATUS_DISABLED;
+    }
+
+    /**
+     * Определяет статус refresh-токена по флагу блокировки.
+     */
+    private String resolveRefreshStatus(boolean revoked) {
+        return revoked ? STATUS_REVOKED : STATUS_ACTIVE;
+    }
+
+    /**
+     * Сохраняет пользователя в базе данных.
+     */
+    private void savePerson(Person person) {
+        peopleRepository.save(person);
+    }
+
+    /**
+     * Сохраняет refresh-токен в базе данных.
+     */
+    private void saveRefreshToken(RefreshToken token) {
+        refreshTokenRepository.save(token);
+    }
+
+    /**
+     * Удаляет пользователя из базы данных.
+     */
+    private void deletePerson(Person person) {
+        peopleRepository.delete(person);
+    }
+
+    /**
+     * Строит ответ о результате изменения ролей пользователя.
+     */
     private RoleUpdateResponseView buildRoleUpdateResponse(String msgKey, String username, String roleName) {
-        String message = defaultMessageService.getMessage(msgKey, username, roleName);
+        String message = messageService.getMessage(msgKey, username, roleName);
         return new RoleUpdateResponseView(username, roleName, message);
     }
 
+    /**
+     * Строит ответ о результате действия администратора.
+     */
     private AdminActionResponseView buildActionResponse(String msgKey, Object... args) {
-        String message = defaultMessageService.getMessage(msgKey, args);
+        String message = messageService.getMessage(msgKey, args);
         return new AdminActionResponseView(message);
     }
 }

@@ -9,7 +9,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
-import ru.krivi4.regauth.services.message.DefaultMessageService;
+import ru.krivi4.regauth.services.message.MessageService;
 import ru.krivi4.regauth.views.ErrorResponseView;
 import ru.krivi4.regauth.web.exceptions.*;
 
@@ -29,7 +29,7 @@ import java.util.function.Consumer;
 @RequiredArgsConstructor
 public class GlobalExceptionHandler {
 
-    private final DefaultMessageService defaultMessageService;
+    private final MessageService messageService;
 
     private static final String URI_PREFIX = "uri=";
     private static final String LOG_UNHANDLED_EXCEPTION = "Необработанное исключение: {}";
@@ -291,7 +291,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public void handleMethodArgumentNotValidException(MethodArgumentNotValidException methodArgumentNotValidException) {
         Map<String, String> fieldErrors = extractFieldErrors(methodArgumentNotValidException.getBindingResult().getFieldErrors());
-        throw new ValidationException(fieldErrors, defaultMessageService);
+        throw new ValidationException(fieldErrors, messageService);
     }
 
     /**

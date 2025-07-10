@@ -5,8 +5,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
-import ru.krivi4.regauth.security.auth.DefaultJwtAuthService;
-import ru.krivi4.regauth.services.message.DefaultMessageService;
+import ru.krivi4.regauth.security.auth.JwtAuthService;
+import ru.krivi4.regauth.services.message.MessageService;
 import ru.krivi4.regauth.web.exceptions.ApiException;
 import ru.krivi4.regauth.web.exceptions.AuthenticateSkipException;
 
@@ -27,13 +27,12 @@ public class JwtFilter extends OncePerRequestFilter {
     private static final String BEARER_PREFIX = "Bearer ";
     private static final String MESSAGE_JWT_INVALID_HEADER = "jwt.invalid.header.exception";
 
-    private final DefaultJwtAuthService defaultJwtAuthService;
-    private final DefaultMessageService defaultMessageService;
+    private final JwtAuthService jwtAuthService;
+    private final MessageService messageService;
 
     /**
-     * Проверяет заголовок Authorization:
-     * - если отсутствует или не «Bearer» → просто продолжает цепочку фильтров;
-     * - иначе передаёт управление в handleAuthentication().
+     * Проверяет JWT-токен и выполняет аутентификацию.
+     * Если токен отсутствует или некорректен — продолжает цепочку фильтров без изменений.
      */
     @Override
     protected void doFilterInternal(
@@ -41,48 +40,94 @@ public class JwtFilter extends OncePerRequestFilter {
             HttpServletResponse response,
             FilterChain filterChain
     ) throws ServletException, IOException {
-        if (headerIsMissingOrNotBearer(request)) {
-            proceedNext(request, response, filterChain);
+        if (shouldSkipAuthentication(request)) {
+            proceedNextFilter(request, response, filterChain);
             return;
         }
-        handleAuthentication(request, response, filterChain);
-    }
 
-    /**
-     * Извлекает и проверяет «сырую» часть JWT:
-     * - если пустая → возвращает 400 Bad Request с сообщением из bundle;
-     * - иначе передаёт токен на аутентификацию и продолжает цепочку.
-     */
-    private void handleAuthentication(
-            HttpServletRequest request,
-            HttpServletResponse response,
-            FilterChain filterChain
-    ) throws ServletException, IOException {
-        String rawToken = extractToken(request);
-
-        if (rawToken.isBlank()) {
-            sendClientError(
-                    response,
-                    HttpServletResponse.SC_BAD_REQUEST,
-                    defaultMessageService.getMessage(MESSAGE_JWT_INVALID_HEADER)
-            );
+        if (handleEmptyTokenIfPresent(request, response)) {
             return;
         }
-        tryAuthenticateAndContinue(rawToken, request, response, filterChain);
+
+        handleAuthenticationFlow(request, response, filterChain);
     }
 
+    //*----------Вспомогательные методы----------*//
+
     /**
-     * Проверка, что заголовок Authorization существует и начинается с «Bearer ».
+     * Проверяет, нужно ли пропустить аутентификацию,
+     * если заголовок Authorization отсутствует или не начинается с Bearer.
      */
-    private boolean headerIsMissingOrNotBearer(HttpServletRequest request) {
+    private boolean shouldSkipAuthentication(HttpServletRequest request) {
         String header = request.getHeader(AUTHORIZATION_HEADER);
         return header == null || !header.startsWith(BEARER_PREFIX);
     }
 
     /**
-     * Переход к следующему фильтру без какой-либо обработки.
+     * Проверяет наличие пустого токена и отправляет 400 Bad Request, если он пустой.
+     * Возвращает true, если обработка запроса завершена ошибкой.
      */
-    private void proceedNext(
+    private boolean handleEmptyTokenIfPresent(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        String jwtToken = extractJwtToken(request);
+        if (jwtToken.isBlank()) {
+            String message = messageService.getMessage(MESSAGE_JWT_INVALID_HEADER);
+            sendClientError(response, HttpServletResponse.SC_BAD_REQUEST, message);
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Выполняет полную обработку JWT: аутентификацию, установку контекста
+     * и продолжение цепочки фильтров. Обрабатывает исключения ApiException и AuthenticateSkipException.
+     */
+    private void handleAuthenticationFlow(
+            HttpServletRequest request,
+            HttpServletResponse response,
+            FilterChain filterChain
+    ) throws ServletException, IOException {
+        String jwtToken = extractJwtToken(request);
+        try {
+            authenticateAndSetContext(jwtToken);
+            proceedNextFilter(request, response, filterChain);
+
+        } catch (AuthenticateSkipException e) {
+            proceedNextFilter(request, response, filterChain);
+
+        } catch (ApiException e) {
+            sendClientError(response, e.getStatus().value(), e.getMessage());
+        }
+    }
+
+    /**
+     * Аутентифицирует JWT-токен и сохраняет Authentication в SecurityContext.
+     */
+    private void authenticateAndSetContext(String jwtToken) {
+        Authentication authentication = jwtAuthService.authenticate(jwtToken);
+        setAuthenticationIfAbsent(authentication);
+    }
+
+    /**
+     * Сохраняет Authentication в SecurityContext, если он ещё не установлен.
+     */
+    private void setAuthenticationIfAbsent(Authentication authentication) {
+        if (SecurityContextHolder.getContext().getAuthentication() == null) {
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+        }
+    }
+
+    /**
+     * Извлекает токен из заголовка Authorization без префикса Bearer.
+     */
+    private String extractJwtToken(HttpServletRequest request) {
+        String header = request.getHeader(AUTHORIZATION_HEADER);
+        return header.substring(BEARER_PREFIX.length()).trim();
+    }
+
+    /**
+     * Продолжает выполнение цепочки фильтров без дополнительной обработки.
+     */
+    private void proceedNextFilter(
             HttpServletRequest request,
             HttpServletResponse response,
             FilterChain filterChain
@@ -91,45 +136,7 @@ public class JwtFilter extends OncePerRequestFilter {
     }
 
     /**
-     * Извлекает строку с токеном, обрезая префикс «Bearer ».
-     */
-    private String extractToken(HttpServletRequest request) {
-        return request.getHeader(AUTHORIZATION_HEADER).substring(BEARER_PREFIX.length()).trim();
-    }
-
-    private void tryAuthenticateAndContinue(
-            String jwtToken,
-            HttpServletRequest request,
-            HttpServletResponse response,
-            FilterChain filterChain
-    ) throws ServletException, IOException {
-
-        try {
-            Authentication authentication = defaultJwtAuthService.authenticate(jwtToken);
-            putIntoSecurityContextIfAbsent(authentication);
-            proceedNext(request, response, filterChain);
-
-        } catch (AuthenticateSkipException skipException) {
-            proceedNext(request, response, filterChain);
-
-        } catch (ApiException apiException) {
-            sendClientError(response,
-                    apiException.getStatus().value(),
-                    apiException.getMessage());
-        }
-    }
-
-    /**
-     * Сохраняет Authentication в контекст, если там ещё ничего нет.
-     */
-    private void putIntoSecurityContextIfAbsent(Authentication authentication) {
-        if (SecurityContextHolder.getContext().getAuthentication() == null) {
-            SecurityContextHolder.getContext().setAuthentication(authentication);
-        }
-    }
-
-    /**
-     * Универсальная отправка HTTP-ошибки клиенту.
+     * Отправляет клиенту HTTP-ответ с кодом ошибки и текстом сообщения.
      */
     private void sendClientError(
             HttpServletResponse response,

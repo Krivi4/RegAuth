@@ -7,21 +7,21 @@ import org.springframework.validation.Errors;
 import org.springframework.validation.Validator;
 import ru.krivi4.regauth.models.Person;
 import ru.krivi4.regauth.services.auth.PersonDetailsService;
-import ru.krivi4.regauth.services.message.DefaultMessageService;
+import ru.krivi4.regauth.services.message.MessageService;
 import ru.krivi4.regauth.web.exceptions.DuplicatePersonException;
 
 /**
- * Проверяет уникальность имени пользователя при регистрации.
+ * Проверяет уникальность username и валидирует пользователя.
  */
 @Component
 @RequiredArgsConstructor
 public class PersonValidator implements Validator {
 
     private final PersonDetailsService personDetailsService;
-    private final DefaultMessageService defaultMessageService;
+    private final MessageService messageService;
 
     /**
-     * Проверяет поддержку класса Person для валидации.
+     * Проверяет, поддерживается ли класс для валидации.
      */
     @Override
     public boolean supports(Class<?> clazz) {
@@ -29,33 +29,48 @@ public class PersonValidator implements Validator {
     }
 
     /**
-     * Валидирует объект Person.
+     * Выполняет валидацию объекта Person.
      */
     @Override
     public void validate(Object target, Errors errors) {
-        Person person = (Person) target;
-        String username = person.getUsername();
+        String username = extractUsername(target);
 
-        if (shouldSkipValidation(username)) {
+        if (shouldSkip(username)) {
             return;
         }
 
-        ensureUsernameIsUnique(username);
+        checkUsernameUniqueness(username);
+    }
+
+    /* ---------- Вспомогательные методы ---------- */
+
+    /**
+     * Извлекает username из объекта Person.
+     */
+    private String extractUsername(Object target) {
+        return ((Person) target).getUsername();
     }
 
     /**
-     * Проверяет, нужно ли пропустить валидацию (username пустой).
+     * Проверяет, нужно ли пропустить валидацию (пустой username).
      */
-    private boolean shouldSkipValidation(String username) {
+    private boolean shouldSkip(String username) {
         return StringUtils.isEmpty(username);
     }
 
     /**
-     * Проверяет уникальность username и выбрасывает исключение, если он уже занят.
+     * Проверяет уникальность username в базе.
      */
-    private void ensureUsernameIsUnique(String username) {
+    private void checkUsernameUniqueness(String username) {
         if (personDetailsService.usernameExists(username)) {
-            throw new DuplicatePersonException(username, defaultMessageService);
+            throwDuplicateUsernameException(username);
         }
+    }
+
+    /**
+     * Бросает исключение о дублировании username.
+     */
+    private void throwDuplicateUsernameException(String username) {
+        throw new DuplicatePersonException(username, messageService);
     }
 }

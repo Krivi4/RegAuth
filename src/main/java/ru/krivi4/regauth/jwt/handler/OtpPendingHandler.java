@@ -5,20 +5,21 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
 import ru.krivi4.regauth.jwt.phase.Phase;
-import ru.krivi4.regauth.services.message.DefaultMessageService;
+import ru.krivi4.regauth.services.message.MessageService;
 import ru.krivi4.regauth.web.exceptions.AuthenticateSkipException;
 
 /**
- * Обработчик фазы OTP_PENDING: пропускает аутентификацию до ввода Otp.
+ * Обработчик фазы OTP_PENDING.
+ * Пропускает аутентификацию до подтверждения OTP‑кода.
  */
 @Component
 @RequiredArgsConstructor
 public class OtpPendingHandler implements JwtPhaseHandler {
 
-    private final DefaultMessageService defaultMessageService;
+    private final MessageService messageService;
 
     /**
-     * Возвращает фазу Otp-PENDING.
+     * Возвращает фазу OTP_PENDING.
      */
     @Override
     public Phase phase() {
@@ -26,10 +27,10 @@ public class OtpPendingHandler implements JwtPhaseHandler {
     }
 
     /**
-     * Пропускаем аутентификацию и продолжаем обработку запроса
+     * Прерывает обработку для дальнейшего ввода OTP‑кода.
      */
     @Override
     public Authentication handle(DecodedJWT jwt) {
-        throw new AuthenticateSkipException(defaultMessageService);
+        throw new AuthenticateSkipException(messageService);
     }
 }

@@ -11,7 +11,7 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 import ru.krivi4.regauth.ports.otp.OtpSender;
 import ru.krivi4.regauth.ports.otp.OtpSenderFallback;
-import ru.krivi4.regauth.services.message.DefaultMessageService;
+import ru.krivi4.regauth.services.message.MessageService;
 import ru.krivi4.regauth.views.SmsRuResponseView;
 import ru.krivi4.regauth.web.exceptions.SmsSendException;
 
@@ -41,7 +41,7 @@ public class SmsRuClient implements OtpSender, OtpSenderFallback {
             "SMS не отправлена после {} попыток. phone={}, text=\"{}\". Причина: {}";
 
 
-    private final DefaultMessageService defaultMessageService;
+    private final MessageService messageService;
     private final RestTemplate restTemplate;
 
     @Value("${smsru.base-url}")
@@ -74,12 +74,12 @@ public class SmsRuClient implements OtpSender, OtpSenderFallback {
     @Override
     @Recover
     public void recover(SmsSendException smsSendException, String phoneNumber, String textMessage) {
-        String message = defaultMessageService.getMessage(MESSAGE_RETRIES_EXCEPTION);
+        String message = messageService.getMessage(MESSAGE_RETRIES_EXCEPTION);
 
         log.error(LOG_RETRIES_ERROR_TPL,
                 MAX_ATTEMPTS, phoneNumber, textMessage, smsSendException.getMessage());
 
-        throw new SmsSendException(message, smsSendException, defaultMessageService);
+        throw new SmsSendException(message, smsSendException, messageService);
     }
 
     //*---------------Вспомогательные методы -----------*//
@@ -115,7 +115,7 @@ public class SmsRuClient implements OtpSender, OtpSenderFallback {
     private void checkForUnsuccessfulDelivery(SmsRuResponseView smsRuResponseView) {
         for (SmsRuResponseView.SmsInfo info : smsRuResponseView.getSms().values()) {
             if (!STATUS_OK.equalsIgnoreCase(info.getStatus())) {
-                throw new SmsSendException(info.toString(), defaultMessageService);
+                throw new SmsSendException(info.toString(), messageService);
             }
         }
     }
@@ -131,7 +131,7 @@ public class SmsRuClient implements OtpSender, OtpSenderFallback {
             code = STATUS_NULL_RESPONSE;
         }
         if (smsRuResponseView == null || !STATUS_OK.equalsIgnoreCase(code)) {
-            throw new SmsSendException(code, defaultMessageService);
+            throw new SmsSendException(code, messageService);
         }
     }
 

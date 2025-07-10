@@ -40,11 +40,11 @@ public class Person {
     private static final boolean NULLABLE = false;
     private static final boolean UNIQUE = true;
     private static final boolean UPDATABLE = true;
-    private static final String MSG_USERNAME_REQUIRED = "{username.required.validation.exception}";
-    private static final String MSG_PASSWORD_REQUIRED = "{password.required.validation.exception}";
-    private static final String MSG_EMAIL_REQUIRED = "{email.required.validation.exception}";
-    private static final String MSG_EMAIL_INVALID = "{email.invalid.validation.exception}";
-    private static final String MSG_PHONE_REQUIRED = "{phone.required.validation.exception}";
+    private static final String MSG_USERNAME_REQUIRED = "username.required.validation.exception";
+    private static final String MSG_PASSWORD_REQUIRED = "password.required.validation.exception";
+    private static final String MSG_EMAIL_REQUIRED = "email.required.validation.exception";
+    private static final String MSG_EMAIL_INVALID = "email.invalid.validation.exception";
+    private static final String MSG_PHONE_REQUIRED = "phone.required.validation.exception";
 
     @Id
     @Column(name = COLUMN_ID, updatable = UPDATABLE, nullable = NULLABLE)

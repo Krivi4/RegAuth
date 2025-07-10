@@ -12,13 +12,28 @@ import ru.krivi4.regauth.views.TokenResponseView;
  */
 public interface AuthService {
 
+    /**
+     * Регистрирует нового пользователя без подтверждения OTP.
+     */
     OtpResponseView registrationNotVerify(PersonDto personDto, org.springframework.validation.BindingResult bindingResult);
 
+    /**
+     * Завершает регистрацию с подтверждением OTP и возвращает токены.
+     */
     TokenResponseView registrationVerify(VerifyOtpDto verifyOtpDto, String authorizationHeader);
 
+    /**
+     * Выполняет вход пользователя без подтверждения OTP.
+     */
     OtpResponseView loginNotVerify(AuthenticationDto authenticationDto);
 
+    /**
+     * Завершает вход с подтверждением OTP и возвращает токены.
+     */
     TokenResponseView loginVerify(VerifyOtpDto verifyOtpDto, String authorizationHeader);
 
+    /**
+     * Обновляет access-токен с использованием refresh-токена.
+     */
     TokenResponseView refresh(String authorizationHeader);
 }

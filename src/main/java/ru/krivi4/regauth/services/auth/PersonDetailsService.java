@@ -9,13 +9,13 @@ import org.springframework.transaction.annotation.Transactional;
 import ru.krivi4.regauth.models.Person;
 import ru.krivi4.regauth.repositories.PeopleRepository;
 import ru.krivi4.regauth.security.auth.PersonDetails;
-import ru.krivi4.regauth.services.message.DefaultMessageService;
+import ru.krivi4.regauth.services.message.MessageService;
 
 import java.util.Optional;
 
 /**
- * Адаптер Spring Security: загружает Person
- * из БД по имени пользователя и оборачивает в PersonDetails.
+ * Сервис для загрузки пользователей.
+ * Используется Spring Security для аутентификации.
  */
 @Service
 @RequiredArgsConstructor
@@ -25,41 +25,50 @@ public class PersonDetailsService implements UserDetailsService {
     private static final boolean TRANSACTION_READ_ONLY = true;
 
     private final PeopleRepository peopleRepository;
-    private final DefaultMessageService defaultMessageService;
+    private final MessageService messageService;
 
     /**
-     * Загружает UserDetails по username.
-     * Если пользователь не найден в базе — бросает UsernameNotFoundException.
+     * Загружает пользователя по username.
+     * Возвращает UserDetails для Spring Security или выбрасывает исключение, если пользователь не найден.
      */
     @Override
     @Transactional(readOnly = TRANSACTION_READ_ONLY)
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        Optional<Person> personOptional = peopleRepository.findByUsername(username);
-        Person person = requirePerson(personOptional, username);
-        return new PersonDetails(person);
+        Person person = findPersonByUsername(username);
+        return toUserDetails(person);
     }
 
     /**
-     * Проверяет, существует ли пользователь с данным именем.
+     * Проверяет, существует ли пользователь с указанным именем.
      */
     @Transactional(readOnly = TRANSACTION_READ_ONLY)
     public boolean usernameExists(String username) {
         return peopleRepository.existsByUsername(username);
     }
 
-    /* -------------------- Вспомогательные методы -------------------- */
+    /* ---------- Вспомогательные методы ---------- */
 
     /**
-     * Проверяет наличие Person в Optional.
-     * Если пусто — бросает UsernameNotFoundException с сообщением.
+     * Ищет пользователя в базе данных по имени.
+     * Бросает UsernameNotFoundException, если пользователь не найден.
      */
-    private Person requirePerson(Optional<Person> personOptional, String username) {
-        if (personOptional.isEmpty()) {
-            String msg = defaultMessageService.getMessage(
-                    USER_NOT_FOUND_MESSAGE_KEY, username
-            );
-            throw new UsernameNotFoundException(msg);
-        }
-        return personOptional.get();
+    private Person findPersonByUsername(String username) {
+        Optional<Person> personOptional = peopleRepository.findByUsername(username);
+        return personOptional.orElseThrow(() -> createUserNotFoundException(username));
+    }
+
+    /**
+     * Преобразует объект Person в PersonDetails для Spring Security.
+     */
+    private PersonDetails toUserDetails(Person person) {
+        return new PersonDetails(person);
+    }
+
+    /**
+     * Создаёт исключение UsernameNotFoundException с локализованным сообщением.
+     */
+    private UsernameNotFoundException createUserNotFoundException(String username) {
+        String message = messageService.getMessage(USER_NOT_FOUND_MESSAGE_KEY, username);
+        return new UsernameNotFoundException(message);
     }
 }

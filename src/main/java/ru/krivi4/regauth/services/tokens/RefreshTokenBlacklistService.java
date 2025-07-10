@@ -1,16 +1,24 @@
 package ru.krivi4.regauth.services.tokens;
 
-import java.time.Instant;
 import java.util.UUID;
 
 /**
- * Интерфейс сервиса управления чёрным списком refresh‑токенов.
+ * Сервис для работы с чёрным списком refresh‑токенов.
  */
 public interface RefreshTokenBlacklistService {
 
+    /**
+     * Добавляет refresh‑токен в чёрный список (отзывает его).
+     */
     void revoke(UUID jti);
 
+    /**
+     * Проверяет, отозван ли refresh‑токен.
+     */
     boolean isRevoked(UUID jti);
 
+    /**
+     * Удаляет просроченные токены из чёрного списка.
+     */
     void cleanExpired();
 }

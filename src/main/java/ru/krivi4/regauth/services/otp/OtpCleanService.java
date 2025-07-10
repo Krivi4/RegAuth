@@ -1,9 +1,12 @@
 package ru.krivi4.regauth.services.otp;
 
 /**
- * Контракт сервиса для плановой очистки устаревших OTP-кодов.
+ * Сервис для удаления устаревших OTP-кодов.
  */
 public interface OtpCleanService {
 
+    /**
+     * Удаляет все OTP с истекшим сроком действия.
+     */
     void cleanExpiredOTP();
 }

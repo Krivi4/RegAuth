@@ -1,6 +1,5 @@
 package ru.krivi4.regauth.web.controllers;
 
-import lombok.NoArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -9,31 +8,37 @@ import org.springframework.web.bind.annotation.RestController;
 import ru.krivi4.regauth.security.auth.PersonDetails;
 
 /**
- * ЗАГЛУШКА-контроллер для быстрой проверки аутентификации.
+ * Заглушка-контроллер для проверки аутентификации.
  */
 @RestController
-@NoArgsConstructor
 public class HelloController {
 
     private static final String HELLO_PATH = "/hello";
     private static final String USER_INFO_PATH = "/showUserInfo";
     private static final String HELLO_MESSAGE = "Hello!";
 
-    private static final String TEXT_PLAIN = MediaType.TEXT_PLAIN_VALUE;
-
     /**
-     * Вывод «Hello!».
+     * Возвращает текст «Hello!».
      */
-    @GetMapping(value = HELLO_PATH, produces = TEXT_PLAIN)
+    @GetMapping(value = HELLO_PATH, produces = MediaType.TEXT_PLAIN_VALUE)
     public String sayHello() {
         return HELLO_MESSAGE;
     }
 
     /**
-     * Возвращает имя аутентифицированного пользователя.
+     * Возвращает имя текущего аутентифицированного пользователя.
      */
-    @GetMapping(value = USER_INFO_PATH, produces = TEXT_PLAIN)
+    @GetMapping(value = USER_INFO_PATH, produces = MediaType.TEXT_PLAIN_VALUE)
     public String showUserInfo() {
+        return getAuthenticatedUsername();
+    }
+
+    /* ---------- Вспомогательные методы ---------- */
+
+    /**
+     * Получает имя пользователя из текущего контекста безопасности.
+     */
+    private String getAuthenticatedUsername() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         PersonDetails personDetails = (PersonDetails) authentication.getPrincipal();
         return personDetails.getUsername();

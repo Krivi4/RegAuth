@@ -4,10 +4,13 @@ import com.auth0.jwt.interfaces.DecodedJWT;
 import ru.krivi4.regauth.models.Person;
 
 /**
- * Контракт сервиса регистрации:
- * создание нового пользователя в БД.
+ * Контракт сервиса регистрации.
+ * Создаёт нового пользователя в базе данных.
  */
 public interface RegistrationService {
 
+    /**
+     * Регистрирует нового пользователя на основе данных из JWT.
+     */
     Person register(DecodedJWT decodedJwt);
 }

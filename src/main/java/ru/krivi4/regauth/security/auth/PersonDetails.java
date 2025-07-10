@@ -8,6 +8,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import ru.krivi4.regauth.models.Person;
 
 import java.util.Collection;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -27,9 +28,7 @@ public class PersonDetails implements UserDetails {
      */
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return person.getRoles().stream()
-                .map(role -> new SimpleGrantedAuthority(ROLE_PREFIX + role.getName()))
-                .collect(Collectors.toSet());
+        return mapRolesToAuthorities();
     }
 
     /**
@@ -37,7 +36,7 @@ public class PersonDetails implements UserDetails {
      */
     @Override
     public String getPassword() {
-        return this.person.getPassword();
+        return extractPassword();
     }
 
     /**
@@ -45,7 +44,7 @@ public class PersonDetails implements UserDetails {
      */
     @Override
     public String getUsername() {
-        return this.person.getUsername();
+        return extractUsername();
     }
 
     /**
@@ -54,7 +53,7 @@ public class PersonDetails implements UserDetails {
      */
     @Override
     public boolean isAccountNonExpired() {
-        return true;
+        return accountNonExpired();
     }
 
     /**
@@ -63,7 +62,7 @@ public class PersonDetails implements UserDetails {
      */
     @Override
     public boolean isAccountNonLocked() {
-        return true;
+        return accountNonLocked();
     }
 
     /**
@@ -72,7 +71,7 @@ public class PersonDetails implements UserDetails {
      */
     @Override
     public boolean isCredentialsNonExpired() {
-        return true;
+        return credentialsNonExpired();
     }
 
     /**
@@ -81,6 +80,59 @@ public class PersonDetails implements UserDetails {
      */
     @Override
     public boolean isEnabled() {
+        return checkUserEnabled();
+    }
+
+    /* ---------- Вспомогательные методы ---------- */
+
+    /**
+     * Преобразует роли пользователя в коллекцию GrantedAuthority с префиксом ROLE_.
+     */
+    private Set<GrantedAuthority> mapRolesToAuthorities() {
+        return person.getRoles().stream()
+                .map(role -> new SimpleGrantedAuthority(ROLE_PREFIX + role.getName()))
+                .collect(Collectors.toSet());
+    }
+
+    /**
+     * Извлекает зашифрованный пароль из сущности Person.
+     */
+    private String extractPassword() {
+        return this.person.getPassword();
+    }
+
+    /**
+     * Извлекает имя пользователя из сущности Person.
+     */
+    private String extractUsername() {
+        return this.person.getUsername();
+    }
+
+    /**
+     * Проверяет, истёк ли аккаунт. По умолчанию возвращает true.
+     */
+    private boolean accountNonExpired() {
+        return true;
+    }
+
+    /**
+     * Проверяет, заблокирован ли аккаунт. По умолчанию возвращает true.
+     */
+    private boolean accountNonLocked() {
+        return true;
+    }
+
+    /**
+     * Проверяет, истекли ли учётные данные. По умолчанию возвращает true.
+     */
+    private boolean credentialsNonExpired() {
+        return true;
+    }
+
+    /**
+     * Проверяет, активен ли аккаунт. Извлекает значение поля enabled у Person.
+     */
+    private boolean checkUserEnabled() {
         return this.person.isEnabled();
     }
 }

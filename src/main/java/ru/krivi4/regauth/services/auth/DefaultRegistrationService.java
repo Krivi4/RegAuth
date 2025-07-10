@@ -9,8 +9,8 @@ import ru.krivi4.regauth.models.Person;
 import ru.krivi4.regauth.models.Role;
 import ru.krivi4.regauth.repositories.PeopleRepository;
 import ru.krivi4.regauth.repositories.RoleRepository;
-import ru.krivi4.regauth.services.message.DefaultMessageService;
-import ru.krivi4.regauth.utils.DefaultCredentialValidator;
+import ru.krivi4.regauth.services.message.MessageService;
+import ru.krivi4.regauth.utils.CredentialValidator;
 import ru.krivi4.regauth.web.exceptions.DefaultRoleNotFoundException;
 
 import java.time.LocalDateTime;
@@ -18,7 +18,8 @@ import java.time.ZoneId;
 import java.util.Locale;
 
 /**
- * Создаёт нового пользователя в БД из данных, полученных в JWT при регистрации.
+ * Сервис регистрации.
+ * Создаёт нового пользователя в базе данных на основе данных из JWT.
  */
 @Service
 @RequiredArgsConstructor
@@ -33,56 +34,93 @@ public class DefaultRegistrationService implements RegistrationService {
 
     private final PeopleRepository peopleRepository;
     private final PasswordEncoder passwordEncoder;
-    private final DefaultCredentialValidator defaultCredentialValidator;
+    private final CredentialValidator credentialValidator;
     private final RoleRepository roleRepository;
-    private final DefaultMessageService defaultMessageService;
+    private final MessageService messageService;
 
     /**
-     * Снимает данные из decodedJwt, собирает сущность Person,
-     * сохраняет её в БД и возвращает.
+     * Регистрирует нового пользователя:
+     * - извлекает данные из JWT,
+     * - создаёт сущность Person,
+     * - назначает базовую роль USER,
+     * - сохраняет пользователя в базе данных.
      */
     @Override
     @Transactional
     public Person register(DecodedJWT decodedJwt) {
-        Person person = buildPersonFromJwt(decodedJwt);
-        assignUserRole(person);
-        return savePerson(person);
+        Person person = createPersonFromJwt(decodedJwt);
+        assignDefaultUserRole(person);
+        return persistPerson(person);
     }
 
-    /* --------------вспомогательные методы --------------*/
+    /* ---------- Вспомогательные методы ---------- */
 
     /**
-     * Извлекает поля из decodedJwt, проверяет и кодирует пароль,
-     * заполняет все поля нового Person.
+     * Создаёт сущность Person на основе данных из JWT.
      */
-    private Person buildPersonFromJwt(DecodedJWT decodedJwt) {
-        String rawUsername = decodedJwt.getClaim(USERNAME_CLAIM).asString();
-        String rawPassword = decodedJwt.getClaim(PASSWORD_CLAIM).asString();
-        String rawEmail = decodedJwt.getClaim(EMAIL_CLAIM).asString();
-        String rawPhone = decodedJwt.getClaim(PHONE_NUMBER_CLAIM).asString();
+    private Person createPersonFromJwt(DecodedJWT decodedJwt) {
+        String username = extractUsername(decodedJwt);
+        String password = extractPassword(decodedJwt);
+        String email = extractEmail(decodedJwt);
+        String phone = extractPhoneNumber(decodedJwt);
 
-        defaultCredentialValidator.isValidPassword(rawPassword);
+        validatePassword(password);
 
+        return buildPerson(username, password, email, phone);
+    }
+
+    /**
+     * Извлекает имя пользователя из JWT.
+     */
+    private String extractUsername(DecodedJWT decodedJwt) {
+        return decodedJwt.getClaim(USERNAME_CLAIM).asString();
+    }
+
+    /**
+     * Извлекает пароль пользователя из JWT.
+     */
+    private String extractPassword(DecodedJWT decodedJwt) {
+        return decodedJwt.getClaim(PASSWORD_CLAIM).asString();
+    }
+
+    /**
+     * Извлекает e-mail пользователя из JWT.
+     */
+    private String extractEmail(DecodedJWT decodedJwt) {
+        return decodedJwt.getClaim(EMAIL_CLAIM).asString();
+    }
+
+    /**
+     * Извлекает номер телефона пользователя из JWT.
+     */
+    private String extractPhoneNumber(DecodedJWT decodedJwt) {
+        return decodedJwt.getClaim(PHONE_NUMBER_CLAIM).asString();
+    }
+
+    /**
+     * Проверяет валидность пароля.
+     */
+    private void validatePassword(String rawPassword) {
+        credentialValidator.isValidPassword(rawPassword);
+    }
+
+    /**
+     * Создаёт и заполняет объект Person.
+     */
+    private Person buildPerson(String username, String password, String email, String phone) {
         Person person = new Person();
-        populatePersonFields(person, rawUsername, rawPassword, rawEmail, rawPhone);
+        populatePersonFields(person, username, password, email, phone);
         return person;
     }
 
     /**
-     * Устанавливает в Person все поля: логин, пароль, e-mail, телефон,
-     * признак enabled, дату создания и дату последнего входа.
+     * Устанавливает значения полей для нового пользователя.
      */
-    private void populatePersonFields(
-            Person person,
-            String rawUsername,
-            String rawPassword,
-            String rawEmail,
-            String rawPhone
-    ) {
-        person.setUsername(rawUsername.toLowerCase(Locale.ROOT));
+    private void populatePersonFields(Person person, String username, String rawPassword, String email, String phone) {
+        person.setUsername(username.toLowerCase(Locale.ROOT));
         person.setPassword(passwordEncoder.encode(rawPassword));
-        person.setEmail(rawEmail);
-        person.setPhoneNumber(rawPhone);
+        person.setEmail(email);
+        person.setPhoneNumber(phone);
         person.setEnabled(true);
 
         LocalDateTime now = LocalDateTime.now(MOSCOW_ZONE);
@@ -91,19 +129,25 @@ public class DefaultRegistrationService implements RegistrationService {
     }
 
     /**
-     * Сохраняет нового пользователя в таблицу people и возвращает результат.
-     */
-    private Person savePerson(Person person) {
-        return peopleRepository.save(person);
-    }
-
-    /**
      * Назначает пользователю базовую роль USER.
      */
-    private void assignUserRole(Person person) {
-        Role userRole = roleRepository.findByName(USER_ROLE_NAME)
-                .orElseThrow(() -> new DefaultRoleNotFoundException(USER_ROLE_NAME, defaultMessageService));
+    private void assignDefaultUserRole(Person person) {
+        Role userRole = findUserRole();
         person.getRoles().add(userRole);
     }
 
+    /**
+     * Ищет роль USER в базе данных или выбрасывает исключение.
+     */
+    private Role findUserRole() {
+        return roleRepository.findByName(USER_ROLE_NAME)
+                .orElseThrow(() -> new DefaultRoleNotFoundException(USER_ROLE_NAME, messageService));
+    }
+
+    /**
+     * Сохраняет пользователя в базе данных и возвращает его.
+     */
+    private Person persistPerson(Person person) {
+        return peopleRepository.save(person);
+    }
 }

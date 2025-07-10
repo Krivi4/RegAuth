@@ -8,16 +8,16 @@ import org.springframework.stereotype.Service;
 import ru.krivi4.regauth.jwt.phase.Phase;
 import ru.krivi4.regauth.jwt.handler.JwtPhaseHandler;
 import ru.krivi4.regauth.jwt.phase.PhaseParser;
-import ru.krivi4.regauth.jwt.util.DefaultJwtUtil;
-import ru.krivi4.regauth.services.message.DefaultMessageService;
+import ru.krivi4.regauth.jwt.util.JwtUtil;
+import ru.krivi4.regauth.services.message.MessageService;
 import ru.krivi4.regauth.web.exceptions.JwtInvalidException;
 import ru.krivi4.regauth.web.exceptions.PhaseUnknownException;
 
 import java.util.Map;
 
 /**
- * Реализация сервиса аутентификации JWT‑токенов.
- * Проверяет валидность токена, извлекает фазу и передаёт обработчику для формирования Authentication.
+ * Сервис аутентификации JWT‑токенов.
+ * Проверяет токен, извлекает фазу и делегирует обработчику фазы.
  */
 @Service
 @RequiredArgsConstructor
@@ -25,56 +25,56 @@ public class DefaultJwtAuthService implements JwtAuthService {
 
     private static final String CLAIM_PHASE = "phase";
 
-    private final DefaultJwtUtil defaultJwtUtil;
+    private final JwtUtil jwtUtil;
     private final PhaseParser phaseParser;
     private final Map<Phase, JwtPhaseHandler> handlers;
-    private final DefaultMessageService defaultMessageService;
+    private final MessageService messageService;
 
     /**
-     * Проверяет валидность JWT‑токена и возвращает объект Authentication.
+     * Проверяет JWT‑токен и возвращает Authentication.
      */
     @Override
     public Authentication authenticate(String rawJwt) {
         DecodedJWT decodedJWT = decodeToken(rawJwt);
-        Phase phase = parsePhase(decodedJWT);
-        JwtPhaseHandler handler = resolveHandler(phase);
+        Phase phase = extractPhase(decodedJWT);
+        JwtPhaseHandler handler = getHandler(phase);
         return handleWith(handler, decodedJWT);
     }
 
-    // *------------Вспомогательные методы--------------*//
+    /* ---------- Вспомогательные методы ---------- */
 
     /**
-     * Извлекает обработчик фазы из мапы.
+     * Декодирует JWT и проверяет подпись.
      */
-    private JwtPhaseHandler resolveHandler(Phase phase) {
-        JwtPhaseHandler handler = handlers.get(phase);
-        if (handler == null) {
-            throw new PhaseUnknownException(phase.name(), defaultMessageService);
+    private DecodedJWT decodeToken(String rawJwt) {
+        try {
+            return jwtUtil.decode(rawJwt);
+        } catch (JWTVerificationException e) {
+            throw new JwtInvalidException(messageService);
         }
-        return handler;
     }
 
     /**
-     * Извлекает фазу токена из claim и парсит её в enum Phase.
+     * Извлекает фазу из claim и парсит в enum Phase.
      */
-    private Phase parsePhase(DecodedJWT decodedJWT) {
+    private Phase extractPhase(DecodedJWT decodedJWT) {
         String rawPhase = decodedJWT.getClaim(CLAIM_PHASE).asString();
         return phaseParser.parse(rawPhase);
     }
 
     /**
-     * Декодирует и проверяет подпись JWT‑токена.
+     * Получает обработчик фазы из карты обработчиков.
      */
-    private DecodedJWT decodeToken(String rawJwt) {
-        try {
-            return defaultJwtUtil.decode(rawJwt);
-        } catch (JWTVerificationException e) {
-            throw new JwtInvalidException(defaultMessageService);
+    private JwtPhaseHandler getHandler(Phase phase) {
+        JwtPhaseHandler handler = handlers.get(phase);
+        if (handler == null) {
+            throw new PhaseUnknownException(phase.name(), messageService);
         }
+        return handler;
     }
 
     /**
-     * Передаёт декодированный токен обработчику фазы для формирования Authentication.
+     * Делегирует обработчику формирование Authentication.
      */
     private Authentication handleWith(JwtPhaseHandler handler, DecodedJWT jwt) {
         return handler.handle(jwt);

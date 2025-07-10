@@ -15,7 +15,7 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 /**
- * Реализация сервиса генерации и отправки одноразового кода OTP.
+ * Сервис генерации и отправки одноразового кода OTP.
  */
 @Service
 @RequiredArgsConstructor
@@ -25,7 +25,7 @@ public class DefaultOtpSendService implements OtpSendService {
     private static final String SERVICE_NAME = "RegAuth";
     private static final String OTP_MESSAGE_KEY = "otp.sms.message";
     private static final int INITIAL_ATTEMPTS = 0;
-    private static final String DEBUG_LOG_MESSAGE = "DEBUG Otp: {}";
+    private static final String DEBUG_LOG_MESSAGE = "DEBUG OTP: {}";
 
     private final OtpGenerator otpGenerator;
     private final OtpSender otpSender;
@@ -34,28 +34,53 @@ public class DefaultOtpSendService implements OtpSendService {
     private final MessageService messageService;
 
     /**
-     * Удаляет старые коды OTP для номера, генерирует новый код, сохраняет его в БД и отправляет SMS пользователю
-     * Возвращает UUID созданного кода
+     * Удаляет старые коды для номера, создаёт новый код,
+     * сохраняет его в БД и отправляет SMS.
      */
     @Override
     @Transactional
     public UUID send(String phoneNumber) {
+        deletePreviousOtps(phoneNumber);
+
+        String rawCode = generateRawOtpCode();
+        sendSmsWithOtp(phoneNumber, rawCode);
+
+        Otp otpEntity = createOtpEntity(phoneNumber, rawCode);
+        persistOtpEntity(otpEntity);
+
+        logOtpForDebug(rawCode);
+        return otpEntity.getIdOtp();
+    }
+
+    /* ---------- Вспомогательные методы ---------- */
+
+    /**
+     * Удаляет старые OTP-коды для указанного номера.
+     */
+    private void deletePreviousOtps(String phoneNumber) {
         otpRepository.deleteByPhoneNumber(phoneNumber);
-
-        String rawCode = otpGenerator.generateCode();
-        String message = String.format(messageService.getMessage(OTP_MESSAGE_KEY), SERVICE_NAME, rawCode);
-        otpSender.sendRequest(phoneNumber, message);
-
-        Otp otp = createOtpEntity(phoneNumber, rawCode);
-        otpRepository.save(otp);
-
-        log.debug(DEBUG_LOG_MESSAGE, rawCode);
-        return otp.getIdOtp();
     }
 
     /**
-     * Создаёт сущность Otp с новым UUID, зашифрованным кодом и сроком действия
-     * Устанавливает счётчик попыток в ноль
+     * Генерирует новый одноразовый код.
+     */
+    private String generateRawOtpCode() {
+        return otpGenerator.generateCode();
+    }
+
+    /**
+     * Отправляет SMS с кодом пользователю.
+     */
+    private void sendSmsWithOtp(String phoneNumber, String rawCode) {
+        String message = String.format(
+                messageService.getMessage(OTP_MESSAGE_KEY),
+                SERVICE_NAME, rawCode
+        );
+        otpSender.sendRequest(phoneNumber, message);
+    }
+
+    /**
+     * Создаёт сущность OTP для сохранения в базе.
      */
     private Otp createOtpEntity(String phoneNumber, String rawCode) {
         return new Otp()
@@ -64,5 +89,19 @@ public class DefaultOtpSendService implements OtpSendService {
                 .setCodeHash(otpGenerator.hash(rawCode))
                 .setExpiresAtOTP(LocalDateTime.now().plusMinutes(smsProperties.getTtlMinutes()))
                 .setAttempts(INITIAL_ATTEMPTS);
+    }
+
+    /**
+     * Сохраняет OTP-код в базе данных.
+     */
+    private void persistOtpEntity(Otp otp) {
+        otpRepository.save(otp);
+    }
+
+    /**
+     * Логирует OTP-код для отладки.
+     */
+    private void logOtpForDebug(String rawCode) {
+        log.debug(DEBUG_LOG_MESSAGE, rawCode);
     }
 }

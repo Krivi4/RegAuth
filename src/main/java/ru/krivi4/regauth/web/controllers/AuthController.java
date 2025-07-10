@@ -16,66 +16,125 @@ import ru.krivi4.regauth.views.TokenResponseView;
 import javax.validation.Valid;
 
 /**
- * Контроллер аутентификации и регистрации пользователей.
+ * REST‑контроллер для регистрации, аутентификации и обновления токенов.
+ * Обрабатывает все этапы: от регистрации до refresh‑токена.
  */
 @RestController
 @RequiredArgsConstructor
 @RequestMapping(AuthController.API_BASE)
 public class AuthController {
 
-    public static final String API_BASE              = "/api/v1/auth";
-    private static final String REGISTRATION         = "/registration";
-    private static final String REGISTRATION_VERIFY  = REGISTRATION + "/verify";
-    private static final String LOGIN                = "/login";
-    private static final String LOGIN_VERIFY         = LOGIN + "/verify";
-    private static final String REFRESH              = "/refresh";
-    private static final String AUTH_HEADER          = "Authorization";
-    private static final String JSON                 = MediaType.APPLICATION_JSON_VALUE;
+    public static final String API_BASE = "/api/v1/auth";
+    private static final String REGISTRATION = "/registration";
+    private static final String LOGIN = "/login";
+    private static final String VERIFY = "/verify";
+    private static final String REFRESH = "/refresh";
+    private static final String AUTH_HEADER = "Authorization";
 
     private final AuthService authService;
 
-
-    /** Запускает процесс регистрации (SMS + OTP-токен). */
-    @PostMapping(value = REGISTRATION, produces = JSON, consumes = JSON)
+    /**
+     * Инициирует регистрацию: принимает PersonDto,
+     * валидирует его и отправляет OTP-код на телефон.
+     */
+    @PostMapping(value = REGISTRATION,
+            produces = MediaType.APPLICATION_JSON_VALUE,
+            consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<OtpResponseView> registrationNotVerify(
             @RequestBody @Valid PersonDto personDto,
             BindingResult bindingResult) {
 
-        OtpResponseView body = authService.registrationNotVerify(personDto, bindingResult);
-        return ResponseEntity.status(HttpStatus.CREATED).body(body);
+        OtpResponseView response = handleRegistrationNotVerify(personDto, bindingResult);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
-    /** Подтверждает регистрацию и выдаёт пару JWT. */
-    @PostMapping(value = REGISTRATION_VERIFY, produces = JSON, consumes = JSON)
+    /**
+     * Подтверждает регистрацию с помощью OTP-кода и возвращает пару JWT‑токенов.
+     */
+    @PostMapping(value = REGISTRATION + VERIFY,
+            produces = MediaType.APPLICATION_JSON_VALUE,
+            consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<TokenResponseView> registrationVerify(
             @RequestBody VerifyOtpDto verifyOtpDto,
             @RequestHeader(AUTH_HEADER) String authHeader) {
 
-        return ResponseEntity.ok(authService.registrationVerify(verifyOtpDto, authHeader));
+        TokenResponseView response = handleRegistrationVerify(verifyOtpDto, authHeader);
+        return ResponseEntity.ok(response);
     }
 
-    /** Проверяет учётные данные и отправляет OTP-код. */
-    @PostMapping(value = LOGIN, produces = JSON, consumes = JSON)
+    /**
+     * Проверяет логин и пароль, отправляет OTP-код на телефон.
+     */
+    @PostMapping(value = LOGIN,
+            produces = MediaType.APPLICATION_JSON_VALUE,
+            consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<OtpResponseView> loginNotVerify(
             @RequestBody AuthenticationDto authenticationDto) {
 
-        return ResponseEntity.ok(authService.loginNotVerify(authenticationDto));
+        OtpResponseView response = handleLoginNotVerify(authenticationDto);
+        return ResponseEntity.ok(response);
     }
 
-    /** Подтверждает вход и выдаёт пару JWT. */
-    @PostMapping(value = LOGIN_VERIFY, produces = JSON, consumes = JSON)
+    /**
+     * Подтверждает вход с помощью OTP-кода и возвращает пару JWT‑токенов.
+     */
+    @PostMapping(value = LOGIN + VERIFY,
+            produces = MediaType.APPLICATION_JSON_VALUE,
+            consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<TokenResponseView> loginVerify(
             @RequestBody VerifyOtpDto verifyOtpDto,
             @RequestHeader(AUTH_HEADER) String authHeader) {
 
-        return ResponseEntity.ok(authService.loginVerify(verifyOtpDto, authHeader));
+        TokenResponseView response = handleLoginVerify(verifyOtpDto, authHeader);
+        return ResponseEntity.ok(response);
     }
 
-    /** Обновляет access/refresh-токены. */
-    @PostMapping(value = REFRESH, produces = JSON)
+    /**
+     * Обновляет access и refresh‑токены по переданному refresh‑токену.
+     */
+    @PostMapping(value = REFRESH,
+            produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<TokenResponseView> refresh(
             @RequestHeader(AUTH_HEADER) String authHeader) {
 
-        return ResponseEntity.ok(authService.refresh(authHeader));
+        TokenResponseView response = handleRefresh(authHeader);
+        return ResponseEntity.ok(response);
+    }
+
+    /* ---------- Вспомогательные методы ---------- */
+
+    /**
+     * Вызывает сервис для начала регистрации.
+     */
+    private OtpResponseView handleRegistrationNotVerify(PersonDto personDto, BindingResult bindingResult) {
+        return authService.registrationNotVerify(personDto, bindingResult);
+    }
+
+    /**
+     * Вызывает сервис для подтверждения регистрации.
+     */
+    private TokenResponseView handleRegistrationVerify(VerifyOtpDto verifyOtpDto, String authHeader) {
+        return authService.registrationVerify(verifyOtpDto, authHeader);
+    }
+
+    /**
+     * Вызывает сервис для начала процесса входа.
+     */
+    private OtpResponseView handleLoginNotVerify(AuthenticationDto authenticationDto) {
+        return authService.loginNotVerify(authenticationDto);
+    }
+
+    /**
+     * Вызывает сервис для подтверждения входа.
+     */
+    private TokenResponseView handleLoginVerify(VerifyOtpDto verifyOtpDto, String authHeader) {
+        return authService.loginVerify(verifyOtpDto, authHeader);
+    }
+
+    /**
+     * Вызывает сервис для обновления токенов.
+     */
+    private TokenResponseView handleRefresh(String authHeader) {
+        return authService.refresh(authHeader);
     }
 }

@@ -6,7 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
 import ru.krivi4.regauth.jwt.phase.Phase;
-import ru.krivi4.regauth.services.message.DefaultMessageService;
+import ru.krivi4.regauth.services.message.MessageService;
 import ru.krivi4.regauth.web.exceptions.AuthenticateSkipException;
 
 /**
@@ -16,7 +16,7 @@ import ru.krivi4.regauth.web.exceptions.AuthenticateSkipException;
 @RequiredArgsConstructor
 public class RefreshHandler implements JwtPhaseHandler {
 
-    private final DefaultMessageService defaultMessageService;
+    private final MessageService messageService;
 
     /**
      * Возвращает фазу REFRESH
@@ -31,6 +31,6 @@ public class RefreshHandler implements JwtPhaseHandler {
      */
     @Override
     public Authentication handle(DecodedJWT jwt) {
-        throw new AuthenticateSkipException(defaultMessageService);
+        throw new AuthenticateSkipException(messageService);
     }
 }

@@ -8,8 +8,8 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 import ru.krivi4.regauth.jwt.phase.Phase;
 import ru.krivi4.regauth.services.auth.PersonDetailsService;
-import ru.krivi4.regauth.services.message.DefaultMessageService;
-import ru.krivi4.regauth.services.tokens.DefaultAccessTokenBlackListService;
+import ru.krivi4.regauth.services.message.MessageService;
+import ru.krivi4.regauth.services.tokens.AccessTokenBlacklistService;
 import ru.krivi4.regauth.web.exceptions.TokenRevokedException;
 
 import java.util.UUID;
@@ -23,9 +23,9 @@ public class FullHandler implements JwtPhaseHandler {
 
     private static final String CLAIM_USERNAME = "username";
 
-    private final PersonDetailsService users;
-    private final DefaultAccessTokenBlackListService blacklist;
-    private final DefaultMessageService defaultMessageService;
+    private final PersonDetailsService personDetailsService;
+    private final AccessTokenBlacklistService accessTokenBlacklistService;
+    private final MessageService messageService;
 
     /**
      * Возвращает фазу FULL.
@@ -40,14 +40,14 @@ public class FullHandler implements JwtPhaseHandler {
      */
     @Override
     public Authentication handle(DecodedJWT jwt) {
-        UUID jti = UUID.fromString(jwt.getId());
-        String username = jwt.getClaim(CLAIM_USERNAME).asString();
+        UUID jti = extractTokenId(jwt);
+        String username = extractUsername(jwt);
 
         checkRevoked(jti);
         return buildAuthToken(loadUser(username));
     }
 
-    //*----------Вспомогательные методы----------*//
+    /* ---------- Вспомогательные методы ---------- */
 
     /**
      * Создает объект Authentication для Spring Security.
@@ -61,8 +61,8 @@ public class FullHandler implements JwtPhaseHandler {
      * Проверяет, отозван ли токен по идентификатору jti.
      */
     private void checkRevoked(UUID jti) {
-        if (blacklist.isBlocked(jti)) {
-            throw new TokenRevokedException(defaultMessageService);
+        if (accessTokenBlacklistService.isBlocked(jti)) {
+            throw new TokenRevokedException(messageService);
         }
     }
 
@@ -70,6 +70,20 @@ public class FullHandler implements JwtPhaseHandler {
      * Загружает пользователя по имени.
      */
     private UserDetails loadUser(String username) {
-        return users.loadUserByUsername(username);
+        return personDetailsService.loadUserByUsername(username);
+    }
+
+    /**
+     * Извлекает уникальный идентификатор токена (jti) из декодированного JWT.
+     */
+    private UUID extractTokenId(DecodedJWT jwt) {
+        return UUID.fromString(jwt.getId());
+    }
+
+    /**
+     * Извлекает имя пользователя из claim "username" в декодированном JWT.
+     */
+    private String extractUsername(DecodedJWT jwt) {
+        return jwt.getClaim(CLAIM_USERNAME).asString();
     }
 }

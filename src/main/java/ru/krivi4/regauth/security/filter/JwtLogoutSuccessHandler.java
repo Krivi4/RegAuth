@@ -6,9 +6,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.web.authentication.logout.LogoutSuccessHandler;
 import org.springframework.stereotype.Component;
-import ru.krivi4.regauth.services.message.DefaultMessageService;
-import ru.krivi4.regauth.services.tokens.DefaultAccessTokenBlackListService;
-import ru.krivi4.regauth.services.tokens.DefaultRefreshTokenBlackListService;
+import ru.krivi4.regauth.services.message.MessageService;
+import ru.krivi4.regauth.services.tokens.AccessTokenBlacklistService;
+import ru.krivi4.regauth.services.tokens.RefreshTokenBlacklistService;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -31,9 +31,9 @@ public class JwtLogoutSuccessHandler implements LogoutSuccessHandler {
     private static final String RESPONSE_CONTENT_TYPE_JSON = "application/json;charset=UTF-8";
     private static final String JSON_MESSAGE_TEMPLATE = "{\"message\":\"%s\"}";
 
-    private final DefaultAccessTokenBlackListService defaultAccessTokenBlackListService;
-    private final DefaultRefreshTokenBlackListService defaultRefreshTokenBlackListService;
-    private final DefaultMessageService defaultMessageService;
+    private final AccessTokenBlacklistService accessTokenBlackListService;
+    private final RefreshTokenBlacklistService refreshTokenBlackListService;
+    private final MessageService messageService;
 
     /**
      * Точка входа при logout.
@@ -100,7 +100,7 @@ public class JwtLogoutSuccessHandler implements LogoutSuccessHandler {
         DecodedJWT decoded = JWT.decode(jwtToken);
         UUID tokenId = UUID.fromString(decoded.getId());
         Instant expiry = decoded.getExpiresAt().toInstant();
-        defaultAccessTokenBlackListService.block(tokenId, expiry);
+        accessTokenBlackListService.block(tokenId, expiry);
     }
 
     /**
@@ -110,14 +110,14 @@ public class JwtLogoutSuccessHandler implements LogoutSuccessHandler {
     private void processRefreshToken(String jwtToken) {
         DecodedJWT decoded = JWT.decode(jwtToken);
         UUID tokenId = UUID.fromString(decoded.getId());
-        defaultRefreshTokenBlackListService.revoke(tokenId);
+        refreshTokenBlackListService.revoke(tokenId);
     }
 
     /**
      * Формирует JSON‑ответ со статусом 200 и сообщением об успешном logout.
      */
     private void writeSuccessResponse(HttpServletResponse response) throws IOException {
-        String message = defaultMessageService.getMessage(MESSAGE_LOGOUT_SUCCESS);
+        String message = messageService.getMessage(MESSAGE_LOGOUT_SUCCESS);
         response.setStatus(HttpServletResponse.SC_OK);
         response.setContentType(RESPONSE_CONTENT_TYPE_JSON);
         response.getWriter().write(String.format(JSON_MESSAGE_TEMPLATE, message));

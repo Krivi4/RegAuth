@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 /**
- * Реализация сервиса для проверки одноразовых кодов OTP и управления счётчиком попыток.
+ * Сервис для проверки OTP-кодов и управления счётчиком попыток.
  */
 @Service
 @RequiredArgsConstructor
@@ -25,40 +25,34 @@ public class DefaultOtpVerifyService implements OtpVerifyService {
     private final SmsProperties smsProperties;
 
     /**
-     * Проверяет код OTP по его идентификатору
-     * Если код истёк или превышен лимит попыток, возвращает false и удаляет запись
-     * Если код верный, удаляет запись и возвращает true
-     * Если код неверный, увеличивает счётчик попыток и возвращает false
+     * Проверяет OTP по ID и коду. Управляет счётчиком попыток и удаляет записи при истечении срока или успехе.
      */
     @Override
     @Transactional
     public boolean verify(UUID otpId, String code) {
-        Otp otp = findOtpOrNull(otpId);
+        Otp otp = findOtpById(otpId);
 
-        if (otp == null || isExpiredOrOverLimit(otp)) {
+        if (otp == null || shouldDeleteOtp(otp)) {
             return false;
         }
-        return checkCodeAndUpdateAttempts(otp, code);
+        return checkCodeAndHandleResult(otp, code);
     }
 
+    /* ---------- Вспомогательные методы ---------- */
+
     /**
-     * Ищет запись OTP по идентификатору
-     * Если не найдена, возвращает null
+     * Ищет OTP-код по идентификатору. Если не найден, возвращает null.
      */
-    private Otp findOtpOrNull(UUID otpId) {
+    private Otp findOtpById(UUID otpId) {
         return otpRepository.findById(otpId).orElse(null);
     }
 
     /**
-     * Проверяет, истёк ли срок действия OTP или превышено количество попыток
-     * Если условие выполнено, удаляет запись из базы и возвращает true
-     * Если нет, возвращает false
+     * Проверяет, истёк ли срок действия или превышен лимит попыток.
+     * Если да, удаляет запись и возвращает true.
      */
-    private boolean isExpiredOrOverLimit(Otp otp) {
-        boolean expired = LocalDateTime.now().isAfter(otp.getExpiresAtOTP());
-        boolean overLimit = otp.getAttempts() >= smsProperties.getAttempts();
-
-        if (expired || overLimit) {
+    private boolean shouldDeleteOtp(Otp otp) {
+        if (isExpired(otp) || isAttemptLimitExceeded(otp)) {
             otpRepository.delete(otp);
             return true;
         }
@@ -66,14 +60,24 @@ public class DefaultOtpVerifyService implements OtpVerifyService {
     }
 
     /**
-     * Проверяет правильность введённого кода и обновляет счётчик попыток
-     * Если код верный, удаляет запись и возвращает true
-     * Если код неверный, увеличивает счётчик попыток и возвращает false
+     * Проверяет, истёк ли срок действия OTP.
      */
-    private boolean checkCodeAndUpdateAttempts(Otp otp, String rawCode) {
-        boolean matches = otpGenerator.matches(rawCode, otp.getCodeHash());
+    private boolean isExpired(Otp otp) {
+        return LocalDateTime.now().isAfter(otp.getExpiresAtOTP());
+    }
 
-        if (matches) {
+    /**
+     * Проверяет, превышен ли лимит попыток.
+     */
+    private boolean isAttemptLimitExceeded(Otp otp) {
+        return otp.getAttempts() >= smsProperties.getAttempts();
+    }
+
+    /**
+     * Проверяет код, удаляет запись при успехе или увеличивает счётчик попыток при ошибке.
+     */
+    private boolean checkCodeAndHandleResult(Otp otp, String rawCode) {
+        if (otpGenerator.matches(rawCode, otp.getCodeHash())) {
             otpRepository.delete(otp);
             return true;
         }
@@ -82,7 +86,7 @@ public class DefaultOtpVerifyService implements OtpVerifyService {
     }
 
     /**
-     * Увеличивает количество попыток ввода кода на 1 и сохраняет обновлённую запись в базе
+     * Увеличивает количество попыток и сохраняет запись.
      */
     private void incrementAttempts(Otp otp) {
         otp.setAttempts(otp.getAttempts() + ATTEMPT_INCREMENT);
