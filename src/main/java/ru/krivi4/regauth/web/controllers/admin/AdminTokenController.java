@@ -1,4 +1,4 @@
-package ru.krivi4.regauth.web.controllers;
+package ru.krivi4.regauth.web.controllers.admin;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
@@ -10,15 +10,19 @@ import ru.krivi4.regauth.views.AdminActionResponseView;
 
 import java.util.UUID;
 
+import static ru.krivi4.regauth.web.controllers.admin.AdminTokenController.API_BASE;
+
 /**
  * REST-контроллер для управления токенами (админ-панель).
  * Все методы доступны только пользователям с ролью ADMIN.
  */
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/v1/admin/tokens")
+@RequestMapping(API_BASE)
 @PreAuthorize("hasRole('ADMIN')")
 public class AdminTokenController {
+
+    public static final String API_BASE = "/regauth/api/v1/auth";
 
     private final AdminService adminService;
 

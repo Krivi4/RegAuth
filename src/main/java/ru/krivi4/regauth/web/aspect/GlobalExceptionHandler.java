@@ -283,6 +283,25 @@ public class GlobalExceptionHandler {
         return buildErrorResponseEntity(phaseUnknownException.getStatus(), exceptionMessage, webRequest);
     }
 
+    /**
+     * Обрабатывает PasswordTooShortException (HTTP 400).
+     */
+    @ExceptionHandler(PasswordTooShortException.class)
+    public ResponseEntity<ErrorResponseView> handlePasswordTooShortException(
+            PasswordTooShortException passwordTooShortException,
+            WebRequest webRequest) {
+
+        String exceptionMessage = passwordTooShortException.getMessage();
+
+        logException(LOG_VALIDATION_ERROR, exceptionMessage, log::debug);
+
+        return buildErrorResponseEntity(
+                passwordTooShortException.getStatus(),
+                exceptionMessage,
+                webRequest
+        );
+    }
+
 
     /**
      * Обрабатывает MethodArgumentNotValidException:

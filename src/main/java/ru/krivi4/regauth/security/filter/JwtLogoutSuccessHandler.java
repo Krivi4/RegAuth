@@ -89,6 +89,9 @@ public class JwtLogoutSuccessHandler implements LogoutSuccessHandler {
      * Извлекает токен из заголовка, обрезая префикс «Bearer ».
      */
     private String extractToken(String headerValue) {
+        if (headerValue == null) {
+            return null;
+        }
         return headerValue.substring(TOKEN_PREFIX_BEARER.length()).trim();
     }
 

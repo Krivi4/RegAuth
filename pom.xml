@@ -28,13 +28,14 @@
 	</scm>
 	<properties>
 		<java.version>11</java.version>
-		<maven.compiler.release>21</maven.compiler.release>
+		<maven.compiler.release>11</maven.compiler.release>
 		<modelmapper.version>2.4.5</modelmapper.version>
 		<java-jwt.version>3.18.3</java-jwt.version>
 		<mapstruct.version>1.4.2.Final</mapstruct.version>
 		<liquibase.version>4.27.0</liquibase.version>
 		<lombok.version>1.18.30</lombok.version>
 		<springdoc.version>1.7.0</springdoc.version>
+		<paulschwarz.version>2.4.1</paulschwarz.version>
 	</properties>
 	<dependencies>
 		<dependency>
@@ -113,8 +114,11 @@
 			<artifactId>springdoc-openapi-ui</artifactId>
 			<version>${springdoc.version}</version>
 		</dependency>
-
-
+		<dependency>
+			<groupId>me.paulschwarz</groupId>
+			<artifactId>spring-dotenv</artifactId>
+			<version>${paulschwarz.version}</version>
+		</dependency>
 	</dependencies>
 
 	<build>

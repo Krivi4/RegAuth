@@ -1,20 +1,46 @@
+# ────────────────────────────────────────────────────────────────
+# Конфигурация профиля DEV
+#  ▸ локальная разработка;
+#  ▸ минимальная безопасность;
+#  ▸ максимально подробные логи и авто-миграции схемы.
+# ────────────────────────────────────────────────────────────────
 spring:
-  profiles: dev
 
-  datasource:             # ── PostgreSQL
-    driver-class-name: org.postgresql.Driver
+  # ── Datasource (PostgreSQL) ───────────────────────────────────
+  datasource:
+    # Строка соединения: hard-code, чтобы не зависеть от переменных
+    # среды. Меняйте при необходимости, либо вынесите в .env.
     url: jdbc:postgresql://localhost:5432/RegAuth_db
-    username: postgres
-    password: 1234
 
-  jpa:                    # ── Hibernate / JPA
-    show-sql: true
+    # Пользователь / пароль читаем из .env, но задаём безопасные
+    # значения-по-умолчанию, чтобы проект стартовал «из коробки».
+    username: ${SPRING_DATASOURCE_USERNAME:postgres}
+    password: ${SPRING_DATASOURCE_PASSWORD:1234}
+
+    driver-class-name: org.postgresql.Driver
+
+  # ── JPA / Hibernate ───────────────────────────────────────────
+  jpa:
+    show-sql: true                 # печатать каждый SQL в лог
+    hibernate:
+      ddl-auto: update             # при старте обновлять схему БД
+
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
-        default_schema: security
-    hibernate:
-      ddl-auto: update       # локально генерируем/обновляем схему
+        default_schema: security   # логическая «рабочая» схема
 
+# ── JWT ─────────────────────────────────────────────────────────
+# Для дев-стендов берём облегчённый «секрет», чтобы пристрелять
+# функционал без загрузки настоящих ключей.
 jwt:
-  secret: dev-secret-key     # можно держать в plain-text для локалки
+  secret: dev-secret-key
+
+# ── SMS.ru ──────────────────────────────────────────────────────
+# Все параметры читаем из .env.properties;
+smsru:
+  base-url:     ${SMSRU_BASE_URL}
+  api-id:       ${SMSRU_API_ID}
+  from:         ${SMSRU_FROM}
+  ttl-minutes:  ${SMSRU_TTL_MINUTES}
+  attempts:     ${SMSRU_ATTEMPTS}

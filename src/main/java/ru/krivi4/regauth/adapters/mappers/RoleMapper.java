@@ -13,5 +13,7 @@ public interface RoleMapper {
 
     /** Берём только имя роли. */
     @Named("roleToString")
-    String map(Role role);
+    default String map(Role role){
+        return role.getName();
+    };
 }

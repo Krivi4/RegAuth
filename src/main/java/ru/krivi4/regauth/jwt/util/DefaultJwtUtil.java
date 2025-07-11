@@ -35,7 +35,7 @@ public class DefaultJwtUtil implements JwtUtil {
     private static final int ACCESS_TOKEN_EXPIRATION_MINUTES = 10;
     private static final int OTP_TOKEN_EXPIRATION_SECONDS = 180;
     private static final int REFRESH_TOKEN_EXPIRATION_DAYS = 7;
-    private static final String PROP_JWT_SECRET = "${jwt_secret}";
+    private static final String PROP_JWT_SECRET = "${jwt.secret}";
 
 
     @Value(PROP_JWT_SECRET)

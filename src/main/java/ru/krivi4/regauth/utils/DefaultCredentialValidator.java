@@ -3,6 +3,7 @@ package ru.krivi4.regauth.utils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import ru.krivi4.regauth.services.message.MessageService;
+import ru.krivi4.regauth.web.exceptions.PasswordTooShortException;
 
 /**
  * Реализация валидатора паролей.
@@ -41,6 +42,7 @@ public class DefaultCredentialValidator implements CredentialValidator {
      * Выбрасывает IllegalArgumentException с сообщением из ресурсов.
      */
     private void throwPasswordTooShortException() {
-        throw new IllegalArgumentException(messageService.getMessage(PASSWORD_LENGTH_ERROR_KEY));
+        throw new PasswordTooShortException(messageService);
+
     }
 }

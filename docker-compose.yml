@@ -1,58 +1,86 @@
-version: "3.8"
-
 services:
-  # ──────────────────────────────────────────────────────────────
-  #  PostgreSQL
-  # ──────────────────────────────────────────────────────────────
+  # ──────────────────────────────
+  # 1. PostgreSQL
+  # ──────────────────────────────
   db:
-    image: postgres:15            # официальный образ
+    image: postgres:15
     restart: always
-    environment:                  # переменные окружения БД
-      POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_USER: ${POSTGRES_USER}
+    env_file: .env                # подключаем переменные
+    environment:
+      POSTGRES_DB:       ${POSTGRES_DB}       # всё берётся из .env
+      POSTGRES_USER:     ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
-      - db_data:/var/lib/postgresql/data
+      - db_data:/var/lib/postgresql/data      # постоянные данные
     ports:
-      - "5432:5432"               # доступ к Postgres с хоста
+      - "15432:5432"                          # хост:контейнер
+    # healthcheck нужен, чтобы приложение не стартовало,
+    # пока БД ещё не поднялась.
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
 
-  # ──────────────────────────────────────────────────────────────
-  #  Spring Boot приложение
-  # ──────────────────────────────────────────────────────────────
+  # ──────────────────────────────
+  # 2. Интерактивный psql-клиент
+  #    (поднимаем вручную, когда нужен)
+  # ──────────────────────────────
+  psql:
+    image: postgres:15
+    profiles: ["tools"]            # НЕ стартует по-умолчанию
+    tty: true
+    stdin_open: true
+    env_file: .env
+    depends_on: [db]
+    # $$ — двойной $, чтобы избежать преждевременной подстановки
+    command: >
+      sh -c 'exec psql -h "$${DB_HOST:-db}" -p 5432 -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"'
+
+  # ──────────────────────────────
+  # 3. Spring-Boot приложение
+  # ──────────────────────────────
   app:
     build:
-      context: .                  # контекст сборки
-      dockerfile: Dockerfile      # Dockerfile приложения
-    restart: on-failure
-    env_file: .env                # все переменные окружения
-
-    environment:                  # можно переопределять значения .env здесь
-      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev} # dev по умолчанию
-      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
-      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
-
-    ports:
-      - "8080:8080"               # API доступен на localhost:8080
-    depends_on:
-      - db                        # ждет БД перед запуском
-
-  # ──────────────────────────────────────────────────────────────
-  #  pgAdmin — Веб GUI для PostgreSQL
-  # ──────────────────────────────────────────────────────────────
-  pgadmin:
-    image: dpage/pgadmin4:latest  # официальный pgAdmin
-    restart: always
+      context: .
+      dockerfile: Dockerfile
+      # отключаем BuildKit ТОЛЬКО на этапе build
+      args:
+        DOCKER_BUILDKIT: "0"
     env_file: .env
     environment:
-      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL}
+      # активный профиль Spring
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE}
+      # строка подключения к БД внутри кластера Docker
+      SPRING_DATASOURCE_URL:  jdbc:postgresql://db:5432/${POSTGRES_DB}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "8080:8080"                # наружу
+    # ждём, пока healthcheck БД скажет «готов»
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # ──────────────────────────────
+  # 4. pgAdmin
+  # ──────────────────────────────
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    profiles: ["tools"]
+    env_file: .env
+    environment:
+      PGADMIN_DEFAULT_EMAIL:    ${PGADMIN_DEFAULT_EMAIL}
       PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD}
     ports:
-      - "8081:80"                 # http://localhost:8081
+      - "8081:80"
     volumes:
       - pgadmin_data:/var/lib/pgadmin
-    depends_on:
-      - db                        # ждет БД перед стартом
+    depends_on: [db]
 
+# ────────────────────────────────
+# 5. Томы (persist-хранилище)
+# ────────────────────────────────
 volumes:
-  db_data:       # данные PostgreSQL
-  pgadmin_data:  # настройки pgAdmin
+  db_data:
+  pgadmin_data:

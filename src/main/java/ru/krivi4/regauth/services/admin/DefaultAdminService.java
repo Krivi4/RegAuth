@@ -124,7 +124,7 @@ public class DefaultAdminService implements AdminService {
      * Загружает всех пользователей из базы данных.
      */
     private List<Person> loadAllUsers() {
-        return peopleRepository.findAll();
+        return peopleRepository.findAllWithRoles();
     }
 
     /**

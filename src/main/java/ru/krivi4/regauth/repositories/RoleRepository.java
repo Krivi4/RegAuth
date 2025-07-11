@@ -10,4 +10,6 @@ public interface RoleRepository extends JpaRepository<Role, Integer> {
      * Находит роль по имени.
      */
     Optional<Role> findByName(String name);
+
+
 }

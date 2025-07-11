@@ -1,20 +1,40 @@
+# ────────────────────────────────────────────────────────────────
+# Конфигурация профиля PROD
+#  ▸ реальные секреты берём из переменных окружения / K8s Secret;
+#  ▸ никаких auto-update схемы БД;
+#  ▸ минимальные логи.
+# ────────────────────────────────────────────────────────────────
 spring:
-  profiles: prod
 
+  # ── Datasource (PostgreSQL) ───────────────────────────────────
   datasource:
-    driver-class-name: org.postgresql.Driver
+    # URL/логин/пароль приходят из окружения (Kubernetes secret,
+    # Docker Compose override, переменные CI и т.д.).
     url: ${SPRING_DATASOURCE_URL}
     username: ${SPRING_DATASOURCE_USERNAME}
     password: ${SPRING_DATASOURCE_PASSWORD}
+    driver-class-name: org.postgresql.Driver
 
+  # ── JPA / Hibernate ───────────────────────────────────────────
   jpa:
-    show-sql: false
+    show-sql: false                # тишина в логах
+    hibernate:
+      ddl-auto: none               # схему БД никогда не трогаем
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
-        default_schema: security
-    hibernate:
-      ddl-auto: ${SPRING_JPA_HIBERNATE_DDL_AUTO:none}   # обычно 'none'
+        default_schema: security   # та же логическая схема
 
+# ── JWT ─────────────────────────────────────────────────────────
+# Строго берём из прод-секрета / переменной окружения.
 jwt:
   secret: ${SPRING_SECRET_KEY}
+
+# ── SMS.ru ──────────────────────────────────────────────────────
+# Все параметры читаем из .env.properties;
+smsru:
+  base-url:     ${SMSRU_BASE_URL}
+  api-id:       ${SMSRU_API_ID}
+  from:         ${SMSRU_FROM}
+  ttl-minutes:  ${SMSRU_TTL_MINUTES}
+  attempts:     ${SMSRU_ATTEMPTS}

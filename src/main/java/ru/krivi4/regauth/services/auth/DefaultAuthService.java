@@ -24,6 +24,7 @@ import ru.krivi4.regauth.services.otp.OtpSendService;
 import ru.krivi4.regauth.services.otp.OtpVerifyService;
 import ru.krivi4.regauth.services.person.PersonFindService;
 import ru.krivi4.regauth.services.tokens.RefreshTokenService;
+import ru.krivi4.regauth.utils.CredentialValidator;
 import ru.krivi4.regauth.utils.PersonValidator;
 import ru.krivi4.regauth.views.OtpResponseView;
 import ru.krivi4.regauth.views.TokenResponseView;
@@ -60,6 +61,7 @@ public class DefaultAuthService implements AuthService {
     private final RefreshTokenService refreshTokenService;
     private final PersonMapper personMapper;
     private final MessageService messageService;
+    private final CredentialValidator credentialValidator;
 
     /**
      * Начинает регистрацию пользователя: валидация данных,
@@ -68,6 +70,9 @@ public class DefaultAuthService implements AuthService {
     @Override
     public OtpResponseView registrationNotVerify(PersonDto personDto, BindingResult bindingResult) {
         validatePersonDto(personDto, bindingResult);
+
+        validatePasswordLength(personDto.getPassword());
+
         Person person = mapPersonDtoToEntity(personDto);
         UUID otpId = sendOtp(person.getPhoneNumber());
         String otpToken = generateOtpRegistrationToken(person, otpId);
@@ -226,7 +231,7 @@ public class DefaultAuthService implements AuthService {
      */
     private RefreshToken validateRefreshToken(DecodedJWT jwt) {
         try {
-            return refreshTokenService.validate(stripBearerPrefix(jwt.getToken()));
+            return refreshTokenService.validate(jwt.getToken());
         } catch (InvalidClaimException e) {
             throw new RefreshTokenInvalidException(messageService);
         }
@@ -268,4 +273,12 @@ public class DefaultAuthService implements AuthService {
             throw new ValidationException(errors, messageService);
         }
     }
+
+    /**
+     * Проверяет длину пароля пользователя на этапе регистрации.
+     */
+    private void validatePasswordLength(String rawPassword) {
+        credentialValidator.isValidPassword(rawPassword);
+    }
+
 }

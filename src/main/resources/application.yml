@@ -1,28 +1,27 @@
 spring:
-  profiles:          # ← профили по умолчанию
-    default: dev     # активируется, если SPRING_PROFILES_ACTIVE не задан
+  # подключаем внешний файл со свойствами
+  config:
+    import: "optional:file:.env.properties"
+
+  profiles:
+    default: dev            # какой профиль брать, если не указан
 
   application:
     name: RegAuth
 
-  # ── Internationalization ───────────────────────────────
+  # ── Liquibase ───────────────────────────────────────────────
+  liquibase:
+    change-log: classpath:db/changelog/db.changelog-master.yaml
+    default-schema: security     # рабочие таблицы приложения
+    liquibase-schema: public     # собственные таблицы Liquibase
+    enabled: ${SPRING_LIQUIBASE_ENABLED:true}
+
+  # ── сообщения i18n ─────────────────────────────────────────
   messages:
     basename: messages
     encoding: UTF-8
 
-  # ── Liquibase (общие) ───────────────────────────────────
-  liquibase:
-    change-log: classpath:db/changelog/db.changelog-master.yaml
-    default-schema: security
-    liquibase-schema: public
-    enabled: ${SPRING_LIQUIBASE_ENABLED:true}
-
-jwt:                          # ── JWT
-  secret: ${SPRING_SECRET_KEY}
-
-smsru:                        # ── SMS.ru
-  base-url:   ${SMSRU_BASE_URL}
-  api-id:     ${SMSRU_API_ID}
-  from:       ${SMSRU_FROM}
-  ttl-minutes: ${SMSRU_TTL_MINUTES}
-  attempts:    ${SMSRU_ATTEMPTS}
+# ── логирование чтения конфигурации (можно выключить) ────────
+logging:
+  level:
+    ru.krivi4.regauth: DEBUG

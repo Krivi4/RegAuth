@@ -25,7 +25,7 @@ public class DefaultOtpSendService implements OtpSendService {
     private static final String SERVICE_NAME = "RegAuth";
     private static final String OTP_MESSAGE_KEY = "otp.sms.message";
     private static final int INITIAL_ATTEMPTS = 0;
-    private static final String DEBUG_LOG_MESSAGE = "DEBUG OTP: {}";
+    private static final String DEBUG_LOG_MESSAGE = "DEBUG OTP SMS-Code: {}";
 
     private final OtpGenerator otpGenerator;
     private final OtpSender otpSender;

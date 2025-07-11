@@ -1,4 +1,4 @@
-package ru.krivi4.regauth.web.controllers;
+package ru.krivi4.regauth.web.controllers.admin;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
@@ -12,15 +12,19 @@ import ru.krivi4.regauth.views.RoleUpdateResponseView;
 
 import java.util.List;
 
+import static ru.krivi4.regauth.web.controllers.admin.AdminUserController.API_BASE;
+
 /**
  * REST-контроллер для управления пользователями (админ-панель).
  * Все методы доступны только пользователям с ролью ADMIN.
  */
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/v1/admin/users")
+@RequestMapping(API_BASE)
 @PreAuthorize("hasRole('ADMIN')")
 public class AdminUserController {
+
+    public static final String API_BASE = "/regauth/api/v1/auth";
 
     private final AdminService adminService;
 

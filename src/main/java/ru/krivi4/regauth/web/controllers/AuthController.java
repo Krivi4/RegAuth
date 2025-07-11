@@ -15,16 +15,18 @@ import ru.krivi4.regauth.views.TokenResponseView;
 
 import javax.validation.Valid;
 
+import static ru.krivi4.regauth.web.controllers.AuthController.API_BASE;
+
 /**
  * REST‑контроллер для регистрации, аутентификации и обновления токенов.
  * Обрабатывает все этапы: от регистрации до refresh‑токена.
  */
 @RestController
 @RequiredArgsConstructor
-@RequestMapping(AuthController.API_BASE)
+@RequestMapping(API_BASE)
 public class AuthController {
 
-    public static final String API_BASE = "/api/v1/auth";
+    public static final String API_BASE = "/regauth/api/v1/auth";
     private static final String REGISTRATION = "/registration";
     private static final String LOGIN = "/login";
     private static final String VERIFY = "/verify";
